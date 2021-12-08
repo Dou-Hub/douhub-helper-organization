@@ -12,7 +12,7 @@ import {
     ERROR_TOO_MANY_REQUESTS, ERROR_AUTH_FAILED,
     S3_BUCKET_NAME_DATA,
     ERROR_PARAMETER_MISSING,
-    REGION, SECRET_ID
+    REGION, AWS_SECRET_ID
 } from './constants';
 import { CheckCallerSettings, CheckCallerResult } from './types';
 import { CognitoIdentityServiceProvider, DynamoDB } from 'aws-sdk';
