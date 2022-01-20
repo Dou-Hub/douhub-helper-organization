@@ -1,7 +1,7 @@
 {
   "name": "douhub-helper-organization",
   "licence": "MIT",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -14,8 +14,9 @@
     "url": "git+https://github.com/dou-hub/douhub-helper-organization.git"
   },
   "dependencies": {
-    "douhub-helper-service": "1.0.6",
-    "douhub-helper-util": "1.0.24",
+    "douhub-helper-data": "^1.0.14",
+    "douhub-helper-service": "1.0.32",
+    "douhub-helper-util": "1.0.45",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
