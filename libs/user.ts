@@ -15,7 +15,8 @@ import {
 
 import {
     isNonEmptyString, newGuid, utcISOString, _track,
-    isEmail, isPhoneNumber, isPassword, serialNumber, isObject
+    isEmail, isPhoneNumber, isPassword, serialNumber, isObject,
+    checkEntityPrivilege,  hasRole
 } from 'douhub-helper-util';
 
 import { assign, find, isNil, isArray, isNumber } from 'lodash';
@@ -28,7 +29,7 @@ import {
     ERROR_PERMISSION_DENIED
 } from "douhub-helper-lambda";
 
-import { checkEntityPrivilege, createRecord, hasRole, processUpsertData, updateRecord } from 'douhub-helper-data';
+import {  createRecord,  processUpsertData, updateRecord } from 'douhub-helper-data';
 
 /*
 Get the user organizations based on mobile number or email

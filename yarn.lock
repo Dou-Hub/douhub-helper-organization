@@ -1460,18 +1460,18 @@ domutils@^2.5.2, domutils@^2.7.0, domutils@^2.8.0:
     domelementtype "^2.2.0"
     domhandler "^4.2.0"
 
-douhub-helper-data@^1.0.14:
-  version "1.0.14"
-  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.14.tgz#b95b152c8bcee35a1834d45a90b3e81df66a9fe4"
-  integrity sha512-LCC/jNWhOIeYyaRW9aIqx7lUbHjoTYww9rfjsLHybvKreYcVFvlIgkOSbHCNEr8QoF4h4xoUM/x5pMKp7iqq5w==
+douhub-helper-data@^1.0.15:
+  version "1.0.15"
+  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.15.tgz#bc0b9df038c44793dcc27a89d50664ac342a3b91"
+  integrity sha512-c00BgXZiOaWJsDwfj9x73kN4IWTwU8gLbJVTcigsUwGUim11Ffuwlglkm2ou6ztQAxZFE52c9lQr7nJZhDoCzw==
   dependencies:
     "@azure/cosmos" "^3.14.1"
     aws-lambda "^1.0.7"
     aws-sdk "^2.1033.0"
     cheerio "^1.0.0-rc.10"
     douhub-helper-lambda "^1.0.37"
-    douhub-helper-service "^1.0.30"
-    douhub-helper-util "^1.0.45"
+    douhub-helper-service "^1.0.32"
+    douhub-helper-util "^1.0.46"
     lodash "^4.17.21"
 
 douhub-helper-lambda@^1.0.33, douhub-helper-lambda@^1.0.37:
@@ -1488,7 +1488,7 @@ douhub-helper-lambda@^1.0.33, douhub-helper-lambda@^1.0.37:
     rate-limiter-flexible "^2.3.5"
     uuid "^8.3.2"
 
-douhub-helper-service@1.0.32, douhub-helper-service@^1.0.30:
+douhub-helper-service@1.0.32, douhub-helper-service@^1.0.30, douhub-helper-service@^1.0.32:
   version "1.0.32"
   resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.32.tgz#482f0740257b2b5091fc02f6d6afccf64493d016"
   integrity sha512-10H0G4YBwHl0sgCGLO6sWgpI0vMn4apVFRM4btsORANuZInLg+2vCpHgbewiWaTWm5msIC4pPsbOb+f4ituTSA==
@@ -1499,7 +1499,20 @@ douhub-helper-service@1.0.32, douhub-helper-service@^1.0.30:
     douhub-helper-util "^1.0.36"
     lodash "^4.17.21"
 
-douhub-helper-util@1.0.45, douhub-helper-util@^1.0.36, douhub-helper-util@^1.0.40, douhub-helper-util@^1.0.45:
+douhub-helper-util@1.0.46, douhub-helper-util@^1.0.46:
+  version "1.0.46"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.46.tgz#fbee47e812320e4e53d679e1c597b71a7b4f91cb"
+  integrity sha512-jeFeETE5k9xCS5AyGWLPgCm2fhg8YhM4MC4qGNcW5dsOEh2fo25hGmFpSKF2inSZGh5xScG5JpUNVkTvYIrKtQ==
+  dependencies:
+    axios "^0.24.0"
+    is-url "^1.2.4"
+    js-base64 "^3.7.2"
+    libphonenumber-js "^1.9.42"
+    lodash "^4.17.21"
+    slugify "^1.6.4"
+    uuid "^8.3.2"
+
+douhub-helper-util@^1.0.36, douhub-helper-util@^1.0.40:
   version "1.0.45"
   resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.45.tgz#411cbdba0d25c3f5dfe1bebb01f7aed7a3fea628"
   integrity sha512-Q+N7vQYfS97KinLCjr6vqM7VJe29IrxD5z0APtzYNzKXcuxn193PVLQfku4g5BY5SM67fx+9WQPJgpjIVVlCHQ==
