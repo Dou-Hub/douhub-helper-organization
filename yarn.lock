@@ -348,6 +348,16 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
+"@elastic/elasticsearch@^7.17.0":
+  version "7.17.0"
+  resolved "https://registry.yarnpkg.com/@elastic/elasticsearch/-/elasticsearch-7.17.0.tgz#589fb219234cf1b0da23744e82b1d25e2fe9a797"
+  integrity sha512-5QLPCjd0uLmLj1lSuKSThjNpq39f6NmlTy9ROLFwG5gjyTgpwSqufDeYG/Fm43Xs05uF7WcscoO7eguI3HuuYA==
+  dependencies:
+    debug "^4.3.1"
+    hpagent "^0.1.1"
+    ms "^2.1.3"
+    secure-json-parse "^2.4.0"
+
 "@eslint/eslintrc@^1.0.5":
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/@eslint/eslintrc/-/eslintrc-1.0.5.tgz#33f1b838dbf1f923bfa517e008362b78ddbbf318"
@@ -1326,7 +1336,7 @@ data-urls@^2.0.0:
     whatwg-mimetype "^2.3.0"
     whatwg-url "^8.0.0"
 
-debug@4, debug@^4.1.0, debug@^4.1.1, debug@^4.3.2, debug@^4.3.3:
+debug@4, debug@^4.1.0, debug@^4.1.1, debug@^4.3.1, debug@^4.3.2, debug@^4.3.3:
   version "4.3.3"
   resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.3.tgz#04266e0b70a98d4462e6e288e38259213332b664"
   integrity sha512-/zxw5+vh1Tfv+4Qn7a5nsbcJKPaSvCDhojn6FEl9vupwK2VCSDtEiEtqr8DFtzYFOdz63LBkxec7DYuc2jon6Q==
@@ -1460,62 +1470,50 @@ domutils@^2.5.2, domutils@^2.7.0, domutils@^2.8.0:
     domelementtype "^2.2.0"
     domhandler "^4.2.0"
 
-douhub-helper-data@^1.0.15:
-  version "1.0.15"
-  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.15.tgz#bc0b9df038c44793dcc27a89d50664ac342a3b91"
-  integrity sha512-c00BgXZiOaWJsDwfj9x73kN4IWTwU8gLbJVTcigsUwGUim11Ffuwlglkm2ou6ztQAxZFE52c9lQr7nJZhDoCzw==
+douhub-helper-data@^1.0.22:
+  version "1.0.22"
+  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.22.tgz#50d9620fb9b6757dbde6ffce50ccddf5d02e60d1"
+  integrity sha512-Rv4Hoqa9sC2lJbrdO3XU3K/jEtO7jqSBDzT9Qv0LG3VBDktEndm91dMsgtSrNrQTapimbFOBvLC8fUWSnzSkoQ==
   dependencies:
     "@azure/cosmos" "^3.14.1"
     aws-lambda "^1.0.7"
     aws-sdk "^2.1033.0"
     cheerio "^1.0.0-rc.10"
-    douhub-helper-lambda "^1.0.37"
-    douhub-helper-service "^1.0.32"
-    douhub-helper-util "^1.0.46"
+    douhub-helper-lambda "1.0.44"
+    douhub-helper-service "1.0.41"
+    douhub-helper-util "1.0.55"
     lodash "^4.17.21"
 
-douhub-helper-lambda@^1.0.33, douhub-helper-lambda@^1.0.37:
-  version "1.0.37"
-  resolved "https://registry.yarnpkg.com/douhub-helper-lambda/-/douhub-helper-lambda-1.0.37.tgz#21507dd354b9d713552f4121702e543ca44bcaf5"
-  integrity sha512-EnA87P07RKk1iTkt7Ab8Z35UcO0BWNuGjHPx4o0Z2rp0zhCiybtwkQVbIwQvdj01UaIOaf234vNjguzcdpNq6w==
+douhub-helper-lambda@1.0.44:
+  version "1.0.44"
+  resolved "https://registry.yarnpkg.com/douhub-helper-lambda/-/douhub-helper-lambda-1.0.44.tgz#46ad4c3470a81eb51fdb02d394b422bf9b7418c3"
+  integrity sha512-ArEmDC3fGpNrXMaUnAGkBFw1+yfrusZ1WP+Ksz9ElbRyozSxJSQU1yy4DZn0FgqtOAsp2s3zkJQTZLWmKd1UyA==
   dependencies:
     aws-sdk "^2.1033.0"
     axios "^0.24.0"
     crypto-js "^4.1.1"
-    douhub-helper-service "^1.0.30"
-    douhub-helper-util "^1.0.40"
+    douhub-helper-service "^1.0.41"
+    douhub-helper-util "^1.0.55"
     lodash "^4.17.21"
     rate-limiter-flexible "^2.3.5"
     uuid "^8.3.2"
 
-douhub-helper-service@1.0.32, douhub-helper-service@^1.0.30, douhub-helper-service@^1.0.32:
-  version "1.0.32"
-  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.32.tgz#482f0740257b2b5091fc02f6d6afccf64493d016"
-  integrity sha512-10H0G4YBwHl0sgCGLO6sWgpI0vMn4apVFRM4btsORANuZInLg+2vCpHgbewiWaTWm5msIC4pPsbOb+f4ituTSA==
+douhub-helper-service@1.0.41, douhub-helper-service@^1.0.41:
+  version "1.0.41"
+  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.41.tgz#a8b5bcf98a3a6a215f9a8f52e5ba62f9578d50de"
+  integrity sha512-mkLJLg9cWjlsSmX5oRJUseDebxmmY009KKr+HT34oq5mtMrHf3xpe4U1WzMKsapledVD3W72IBz4QWtzojcMgg==
   dependencies:
     "@azure/cosmos" "^3.14.1"
+    "@elastic/elasticsearch" "^7.17.0"
     aws-sdk "^2.1033.0"
-    douhub-helper-lambda "^1.0.33"
-    douhub-helper-util "^1.0.36"
+    douhub-helper-util "^1.0.55"
     lodash "^4.17.21"
+    qs "^6.10.3"
 
-douhub-helper-util@1.0.46, douhub-helper-util@^1.0.46:
-  version "1.0.46"
-  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.46.tgz#fbee47e812320e4e53d679e1c597b71a7b4f91cb"
-  integrity sha512-jeFeETE5k9xCS5AyGWLPgCm2fhg8YhM4MC4qGNcW5dsOEh2fo25hGmFpSKF2inSZGh5xScG5JpUNVkTvYIrKtQ==
-  dependencies:
-    axios "^0.24.0"
-    is-url "^1.2.4"
-    js-base64 "^3.7.2"
-    libphonenumber-js "^1.9.42"
-    lodash "^4.17.21"
-    slugify "^1.6.4"
-    uuid "^8.3.2"
-
-douhub-helper-util@^1.0.36, douhub-helper-util@^1.0.40:
-  version "1.0.45"
-  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.45.tgz#411cbdba0d25c3f5dfe1bebb01f7aed7a3fea628"
-  integrity sha512-Q+N7vQYfS97KinLCjr6vqM7VJe29IrxD5z0APtzYNzKXcuxn193PVLQfku4g5BY5SM67fx+9WQPJgpjIVVlCHQ==
+douhub-helper-util@1.0.55, douhub-helper-util@^1.0.55:
+  version "1.0.55"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.55.tgz#960d00da62c47ad135d27c1e839157cd531116df"
+  integrity sha512-zuqIEHh6NoIIweRI8w9XhI7SDB8p//Pn6Z/n8AdKmWzXHT8g7ASSkn5gLntmbgKqm0t/TPoPq1P6EFmLmXuH9g==
   dependencies:
     axios "^0.24.0"
     is-url "^1.2.4"
@@ -2102,6 +2100,11 @@ hexoid@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/hexoid/-/hexoid-1.0.0.tgz#ad10c6573fb907de23d9ec63a711267d9dc9bc18"
   integrity sha512-QFLV0taWQOZtvIRIAdBChesmogZrtuXvVWsFHZTk2SU+anspqZ2vMnoLg7IE1+Uk16N19APic1BuF8bC8c2m5g==
+
+hpagent@^0.1.1:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/hpagent/-/hpagent-0.1.2.tgz#cab39c66d4df2d4377dbd212295d878deb9bdaa9"
+  integrity sha512-ePqFXHtSQWAFXYmj+JtOTHr84iNrII4/QRlAAPPE+zqnKy4xJo7Ie1Y4kC7AdB+LxLxSTTzBMASsEcy0q8YyvQ==
 
 html-encoding-sniffer@^2.0.1:
   version "2.0.1"
@@ -3048,7 +3051,7 @@ ms@2.1.2:
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
   integrity sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==
 
-ms@^2.1.1:
+ms@^2.1.1, ms@^2.1.3:
   version "2.1.3"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
   integrity sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
@@ -3334,7 +3337,7 @@ qs@6.9.3:
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.9.3.tgz#bfadcd296c2d549f1dffa560619132c977f5008e"
   integrity sha512-EbZYNarm6138UKKq46tdx08Yo/q9ZhFoAXAI1meAFd2GtbRDhbZY2WQSICskT0c5q99aFzLG1D4nvTk9tqfXIw==
 
-qs@^6.10.1:
+qs@^6.10.1, qs@^6.10.3:
   version "6.10.3"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.10.3.tgz#d6cde1b2ffca87b5aa57889816c5f81535e22e8e"
   integrity sha512-wr7M2E0OFRfIfJZjKGieI8lBKb7fRCH4Fv5KNPEs7gJ8jadvotdsS08PzOKR7opXhZ/Xkjtt3WF9g38drmyRqQ==
@@ -3461,6 +3464,11 @@ saxes@^5.0.1:
   integrity sha512-5LBh1Tls8c9xgGjw3QrMwETmTMVk0oFgvrFSvWx62llR2hcEInrKNZ2GZCCuuy2lvWrdl5jhbpeqc5hRYKFOcw==
   dependencies:
     xmlchars "^2.2.0"
+
+secure-json-parse@^2.4.0:
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/secure-json-parse/-/secure-json-parse-2.4.0.tgz#5aaeaaef85c7a417f76271a4f5b0cc3315ddca85"
+  integrity sha512-Q5Z/97nbON5t/L/sH6mY2EacfjVGwrCcSi5D3btRO2GZ8pf1K1UN7Z9H5J57hjVU2Qzxr1xO+FmBhOvEkzCMmg==
 
 semaphore@^1.0.5:
   version "1.1.0"

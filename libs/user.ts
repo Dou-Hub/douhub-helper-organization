@@ -16,7 +16,7 @@ import {
 import {
     isNonEmptyString, newGuid, utcISOString, _track,
     isEmail, isPhoneNumber, isPassword, serialNumber, isObject,
-    checkEntityPrivilege,  hasRole
+    checkEntityPrivilege, hasRole
 } from 'douhub-helper-util';
 
 import { assign, find, isNil, isArray, isNumber } from 'lodash';
@@ -29,7 +29,7 @@ import {
     ERROR_PERMISSION_DENIED
 } from "douhub-helper-lambda";
 
-import {  createRecord,  processUpsertData, updateRecord } from 'douhub-helper-data';
+import { createRecord, processUpsertData, updateRecord } from 'douhub-helper-data';
 
 /*
 Get the user organizations based on mobile number or email
@@ -130,7 +130,7 @@ export const verifyUserCode = async (email?: string, mobile?: string, verificati
 };
 
 
-export const createUser = async (context: Record<string,any>, user: Record<string,any>, password:string, organizationId?: string): Promise<Record<string,any>> => {
+export const createUser = async (context: Record<string, any>, user: Record<string, any>, password: string, organizationId?: string): Promise<Record<string, any>> => {
 
     const source = 'createUser';
     const callerUser = context.user;
@@ -178,7 +178,7 @@ export const createUser = async (context: Record<string,any>, user: Record<strin
             }
         }
         else {
-            
+
             if (!checkEntityPrivilege(context, 'User', undefined, 'create')) {
                 throw {
                     ...HTTPERROR_403,
@@ -222,11 +222,10 @@ export const createUser = async (context: Record<string,any>, user: Record<strin
 
     try {
 
-        if (_track) console.log('Check existing users.', {user});
+        if (_track) console.log('Check existing users.', { user });
         const existingUsers = await getUserOrgs(user.email, user.mobile);
 
-        if (!isNil(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)) 
-        {
+        if (!isNil(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)) {
             throw {
                 ...HTTPERROR_400,
                 type: 'ERROR_API_USEREXISTS',
@@ -244,7 +243,7 @@ export const createUser = async (context: Record<string,any>, user: Record<strin
             //create organization in cosmosDb
             createdCosmosOrganizationId = newOrganizationId;
 
-            if (_track) console.log('Create new organization in the CosmsDB.', {createdCosmosOrganizationId});
+            if (_track) console.log('Create new organization in the CosmsDB.', { createdCosmosOrganizationId });
 
             organization = await createRecord(
                 context,
@@ -259,7 +258,7 @@ export const createUser = async (context: Record<string,any>, user: Record<strin
             //create organization in dynamoDb
             const createdDynamoOrganizationId = `organization.${createdCosmosOrganizationId}`;
 
-            if (_track) console.log('Create new organization in the DynamoDB.', {createdDynamoOrganizationId});
+            if (_track) console.log('Create new organization in the DynamoDB.', { createdDynamoOrganizationId });
             await dynamoDBCreate({ ...organization, id: createdDynamoOrganizationId }, DYNAMO_DB_TABLE_NAME_PROFILE);
 
             //context.organization = organization;
@@ -277,20 +276,20 @@ export const createUser = async (context: Record<string,any>, user: Record<strin
         context.user = user;
         context.userId = user.id;
 
-        user = await processUpsertData(context, user, {skipExistingData:true});
+        user = await processUpsertData(context, user, { skipExistingData: true });
 
         //insert user into cosmosDb
-        if (_track) console.log('Create new user in the CosmsDB.', {user});
+        if (_track) console.log('Create new user in the CosmsDB.', { user });
         await cosmosDBUpsert(user);
         createdCosmosUserId = user.id;
 
         //insert user into dynamoDb
         const createdDynamoUserId = `user.${user.id}`;
-        if (_track) console.log('Create new user in the DynamoDB.', {createdDynamoUserId});
+        if (_track) console.log('Create new user in the DynamoDB.', { createdDynamoUserId });
         await dynamoDBCreate({ ...user, id: createdDynamoUserId }, DYNAMO_DB_TABLE_NAME_PROFILE);
 
         const userTokenData = { userId: newUserId, organizationId: newOrganizationId, roles: user.roles, licenses: user.licenses };
-        if (_track) console.log('Create new user token.', {userTokenData});
+        if (_track) console.log('Create new user token.', { userTokenData });
         userToken = await createToken(newUserId, 'user', userTokenData);
 
         if (_track) console.log('Create new user in Cognito.', {
@@ -337,12 +336,11 @@ export const createUser = async (context: Record<string,any>, user: Record<strin
 };
 
 
-export const updateUser = async (context: Record<string,any>, user: Record<string,any>): Promise<Record<string,any>> => {
+export const updateUser = async (context: Record<string, any>, user: Record<string, any>): Promise<Record<string, any>> => {
 
     const source = 'updateUser';
-  
-    if (!(isObject(user) && isNonEmptyString(user.id)))
-    {
+
+    if (!(isObject(user) && isNonEmptyString(user.id))) {
         throw {
             ...HTTPERROR_400,
             type: ERROR_PARAMETER_MISSING,
@@ -374,25 +372,21 @@ export const updateUser = async (context: Record<string,any>, user: Record<strin
     const existingLicenses = isArray(newUser.licenses) ? newUser.licenses : [];
 
     //Only the user with the correct role can change the role and licenses of a user
-    if (JSON.stringify(newRoles)!=(JSON.stringify(existingRoles)) || 
-    JSON.stringify(newLicenses)!=(JSON.stringify(existingLicenses)))
-    {
+    if (JSON.stringify(newRoles) != (JSON.stringify(existingRoles)) ||
+        JSON.stringify(newLicenses) != (JSON.stringify(existingLicenses))) {
         let updateRolesAndLicenses = false;
-        if (hasRole(context, 'ORG-ADMIN', newUser) || hasRole(context, 'USER-MANAGER', newUser))
-        {
+        if (hasRole(context, 'ORG-ADMIN', newUser) || hasRole(context, 'USER-MANAGER', newUser)) {
             updateRolesAndLicenses = true;
             newUser.roles = newRoles;
             newUser.licenses = newLicenses;
         }
 
-        if (hasRole(context, 'ROLE-MANAGER', newUser))
-        {
+        if (hasRole(context, 'ROLE-MANAGER', newUser)) {
             updateRolesAndLicenses = true;
             newUser.roles = newRoles;
         }
 
-        if (hasRole(context, 'LICENSE-MANAGER', newUser))
-        {
+        if (hasRole(context, 'LICENSE-MANAGER', newUser)) {
             updateRolesAndLicenses = true;
             newUser.licenses = newLicenses;
         }
@@ -400,18 +394,17 @@ export const updateUser = async (context: Record<string,any>, user: Record<strin
         if (updateRolesAndLicenses) await cosmosDBUpdate(newUser);
     }
 
-    await dynamoDBUpsert({...newUser,  id: `user.${newUser.id}` }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
+    await dynamoDBUpsert({ ...newUser, id: `user.${newUser.id}` }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
 
     return newUser;
 }
 
 //We do not delete any user in our platform, just simply change stateCode=-1;
-export const deleteUser = async (context: Record<string,any>, id: string, statusCode?:number): Promise<Record<string,any>> => {
+export const deleteUser = async (context: Record<string, any>, id: string, statusCode?: number): Promise<Record<string, any>> => {
 
     const source = 'deleteUser';
-  
-    if (!isNonEmptyString(id))
-    {
+
+    if (!isNonEmptyString(id)) {
         throw {
             ...HTTPERROR_400,
             type: ERROR_PARAMETER_MISSING,
@@ -422,7 +415,7 @@ export const deleteUser = async (context: Record<string,any>, id: string, status
         }
     }
 
-    const user = await cosmosDBRetrieve(id);
+    const user: any = await cosmosDBRetrieve(id);
     if (!user || user && user.entityName != 'User') {
         throw {
             ...HTTPERROR_400,
@@ -434,8 +427,7 @@ export const deleteUser = async (context: Record<string,any>, id: string, status
         }
     }
 
-    if (!(hasRole(context, 'ORG-ADMIN', user) || hasRole(context, 'USER-MANAGER', user)))
-    {
+    if (!(hasRole(context, 'ORG-ADMIN', user) || hasRole(context, 'USER-MANAGER', user))) {
         throw {
             ...HTTPERROR_403,
             type: ERROR_PERMISSION_DENIED,
@@ -446,10 +438,11 @@ export const deleteUser = async (context: Record<string,any>, id: string, status
         }
     }
 
-    if (!(statusCode && isNumber(statusCode) && statusCode<0)) statusCode=-1;
+    if (!(statusCode && isNumber(statusCode) && statusCode < 0)) statusCode = -1;
 
-    await cosmosDBUpdate({...user, stateCode:-1, statusCode})
-    await dynamoDBUpsert({...user,  id: `user.${user.id}` }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
+    const utcNow = utcISOString();
+    await cosmosDBUpdate({ ...user, stateCode: -1, statusCode, modifiedOn: utcNow, modifiedBy: context.userId })
+    await dynamoDBUpsert({ ...user, stateCode: -1, statusCode, id: `user.${user.id}`, modifiedOn: utcNow, modifiedBy: context.userId }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
 
     return user;
 }
