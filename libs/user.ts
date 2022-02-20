@@ -38,7 +38,7 @@ If there are more than one organizations for a user, the UI should ask user to c
 */
 export const getUserOrgs = async (email?: string, mobile?: string, verificationCode?: string): Promise<Record<string, any>> => {
 
-    const source = 'createUser';
+    const source = 'getUserOrgs';
 
     if (!isNonEmptyString(email) && !isNonEmptyString(mobile)) {
         throw {
@@ -130,13 +130,22 @@ export const verifyUserCode = async (email?: string, mobile?: string, verificati
 };
 
 
-export const createUser = async (context: Record<string, any>, user: Record<string, any>, password: string, organizationId?: string): Promise<Record<string, any>> => {
+export const createUser = async (
+    context: Record<string, any>, 
+    userData: Record<string, any>, 
+    password: string, 
+    organizationData?: Record<string, any>
+    ): Promise<Record<string, any>> => {
+
+    
+    const organizationId:string|undefined = organizationData?.id;
 
     const source = 'createUser';
     const callerUser = context.user;
 
     //delete the attribute that should not be provided during create user
-
+    
+    let user = {...userData};
     delete user.emailVerifiedOn;
     delete user.mobileVerifiedOn;
 
@@ -248,6 +257,7 @@ export const createUser = async (context: Record<string, any>, user: Record<stri
             organization = await createRecord(
                 context,
                 {
+                    ...organizationData,
                     id: createdCosmosOrganizationId,
                     entityName: "Organization",
                     name: 'My Organization',
