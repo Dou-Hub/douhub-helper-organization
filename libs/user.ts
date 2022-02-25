@@ -6,7 +6,7 @@
 
 import {
     cosmosDBDelete, cosmosDBQuery, cosmosDBRetrieve, cosmosDBUpdate,
-    cosmosDBUpsert, createCognitoUser,
+    createCognitoUser, updateCognitoPassword,
     dynamoDBCreate,
     dynamoDBDelete,
     dynamoDBUpsert,
@@ -36,59 +36,43 @@ Get the user organizations based on mobile number or email
 Return all organizations user belong to. 
 If there are more than one organizations for a user, the UI should ask user to choose one
 */
-export const getUserOrgs = async (email?: string, mobile?: string, verificationCode?: string): Promise<Record<string, any>> => {
+export const getUserOrgs = async (value: string, type: 'email' | 'mobile'): Promise<Record<string, any>> => {
 
     const source = 'getUserOrgs';
 
-    if (!isNonEmptyString(email) && !isNonEmptyString(mobile)) {
+    if (type == 'email' && !isEmail(value)) {
         throw {
             ...HTTPERROR_400,
             type: ERROR_PARAMETER_MISSING,
             source,
             detail: {
-                reason: 'email,mobile',
-                parameters: { email, mobile }
+                reason: 'email',
+                parameters: { value }
             }
         }
     }
 
-    if (!isEmail(email ? email : '') && !isPhoneNumber(mobile)) {
+    if (type == 'mobile' && !isPhoneNumber(value)) {
         throw {
             ...HTTPERROR_400,
-            type: ERROR_PARAMETER_INVALID,
+            type: ERROR_PARAMETER_MISSING,
             source,
             detail: {
-                reason: 'email,mobile',
-                parameters: { email, mobile }
+                reason: 'email',
+                parameters: { value }
             }
         }
     }
 
 
-    if (isNonEmptyString(verificationCode)) {
-        //We will need to verify the code first 
-        if (!(await verifyUserCode(email, mobile, verificationCode))) {
-            return onError({
-                ...HTTPERROR_400,
-                source,
-                type: ERROR_PARAMETER_INVALID,
-                detail: {
-                    reason: 'email,mobile',
-                    parameters: { verificationCode }
-                }
-            });
-        }
-    }
-
     const attributes = 'c.id, c.organizationId, c.emailVerifiedOn, c.mobileVerifiedOn, c.stateCode, c.statusCode, c.latestSignInOn, c.modifiedOn';
-    const type = isNonEmptyString(email) ? 'email' : 'mobile';
 
     return await cosmosDBQuery(`SELECT ${attributes} FROM c 
         WHERE c.stateCode=0 AND c.entityName=@entityName 
         AND c.${type}=@value`, [
         {
             name: '@value',
-            value: isNonEmptyString(email) ? email : mobile
+            value: value
         },
         {
             name: '@entityName',
@@ -97,29 +81,30 @@ export const getUserOrgs = async (email?: string, mobile?: string, verificationC
     ]);
 };
 
-
-export const verifyUserCode = async (email?: string, mobile?: string, verificationCode?: string): Promise<boolean> => {
-
+export const verifyUserCodes = async (userId: string, type: 'email' | 'mobile', codes: string): Promise<Record<string, any> | undefined> => {
     const users = await cosmosDBQuery(`SELECT * FROM c 
-        WHERE c.email=@email AND c.emailVerificationCode=@verificationCode 
-        OR c.mobile=@mobile AND c.mobileVerificationCode=@verificationCode`, [
+    WHERE c.id=@id AND
+    ${type == 'email' ? 'c.emailVerificationCode=@codes' : 'c.mobileVerificationCode=@codes'}`, [
         {
-            name: '@email',
-            value: isNonEmptyString(email) ? email : newGuid()
+            name: '@id',
+            value: userId
         },
         {
-            name: '@mobile',
-            value: isNonEmptyString(mobile) ? mobile : newGuid()
-        },
-        {
-            name: '@verificationCode',
-            value: verificationCode
-        }
-    ]);
+            name: '@codes',
+            value: codes
+        }]);
 
-    if (users.length == 0) return false;
+    return users.length > 0 ? users[0] : undefined;
 
-    const user = assign({}, users[0], users[0].emailVerificationCode == verificationCode ?
+}
+
+export const activateUser = async (userId: string, type: 'email' | 'mobile', codes: string): Promise<boolean> => {
+
+
+    const verifiedUser = await verifyUserCodes(userId, type, codes);
+    if (isNil(verifiedUser)) return false;
+
+    const user = assign({}, verifiedUser, type == 'email' ?
         { emailVerifiedOn: utcISOString() } :
         { mobileVerifiedOn: utcISOString() });
 
@@ -130,59 +115,74 @@ export const verifyUserCode = async (email?: string, mobile?: string, verificati
 };
 
 
-export const createUser = async (
-    context: Record<string, any>, 
-    userData: Record<string, any>, 
-    password: string, 
-    organizationData?: Record<string, any>
-    ): Promise<Record<string, any>> => {
+export const changeUserPassword = async (solution: Record<string, any>, userId: string, password: string, type: 'email' | 'mobile', codes: string): Promise<boolean> => {
 
-    
-    const organizationId:string|undefined = organizationData?.id;
+    const verifiedUser = await verifyUserCodes(userId, type, codes);
+    if (isNil(verifiedUser)) return false;
+
+    const organizationId = verifiedUser.organizationId;
+
+    await updateCognitoPassword(
+        solution.auth.cognito.userPoolId,
+        solution.auth.cognito.userPoolLambdaClientId,
+        organizationId,
+        userId,
+        password
+    );
+
+    return true;
+}
+
+
+export const createUser = async (
+    context: {
+        userId: string,
+        organizationId: string,
+        solution: Record<string, any>
+    },
+    userData: Record<string, any>,
+    type: 'email' | 'mobile',
+    password: string,
+    organizationData?: Record<string, any>
+): Promise<Record<string, any>> => {
+
+
+    const organizationId: string | undefined = organizationData?.id;
 
     const source = 'createUser';
-    const callerUser = context.user;
+    const callerUserOrganizationId = context.organizationId;
+    const callerUserId = context.userId;
 
     //delete the attribute that should not be provided during create user
-    
-    let user = {...userData};
+
+    let user = { ...userData };
     delete user.emailVerifiedOn;
     delete user.mobileVerifiedOn;
 
-    if (!isNonEmptyString(user.email) && !isNonEmptyString(user.mobile)) {
+    const { email, mobile } = user;
+
+    if (!isNonEmptyString(type) || type == 'email' && !isEmail(email) || type == 'mobile' && !isPhoneNumber(mobile)) {
         throw {
             ...HTTPERROR_400,
             type: ERROR_PARAMETER_MISSING,
             source,
             detail: {
-                reason: 'email,mobile',
-                parameters: { email: user.email, mobile: user.mobile }
-            }
-        }
-    }
-
-    if (!isEmail(user.email) && !isPhoneNumber(user.mobile)) {
-        throw {
-            ...HTTPERROR_400,
-            type: ERROR_PARAMETER_INVALID,
-            source,
-            detail: {
-                reason: 'email,mobile',
-                parameters: { email: user.email, mobile: user.mobile }
+                reason: `The ${type == 'email' ? 'email' : 'mobile number'} is invalid.`,
+                parameters: { type, email, mobile }
             }
         }
     }
 
     //if organizationId is provied, it means the user will be created and added to the orgnization
     if (isNonEmptyString(organizationId)) {
-        if (!(isObject(callerUser) && callerUser.organizationid != organizationId)) {
+        if (callerUserOrganizationId != organizationId) {
             throw {
                 ...HTTPERROR_403,
                 type: ERROR_PARAMETER_INVALID,
                 source,
                 detail: {
                     reason: 'The caller is from different organization.',
-                    parameters: { callerId: callerUser?.organizationid, organizationId }
+                    parameters: { callerId: callerUserOrganizationId, organizationId }
                 }
             }
         }
@@ -195,7 +195,7 @@ export const createUser = async (
                     source,
                     detail: {
                         reason: 'The caller has no permission to create the user in the organization.',
-                        parameters: { callerId: callerUser?.id, organizationId }
+                        parameters: { callerId: callerUserId, organizationId }
                     }
                 }
             }
@@ -205,19 +205,27 @@ export const createUser = async (
 
     const solution = context.solution;
 
-    if (!isPassword(password, solution.auth.passwordRules)) {
-        throw {
-            ...HTTPERROR_400,
-            type: ERROR_PARAMETER_INVALID,
-            source,
-            detail: {
-                reason: 'email,mobile',
-                parameters: { password }
+
+    if (isNonEmptyString(password)) {
+        if (!solution?.auth?.passwordRules || solution?.auth?.passwordRules && !isPassword(password, solution.auth.passwordRules)) {
+            throw {
+                ...HTTPERROR_400,
+                type: ERROR_PARAMETER_INVALID,
+                source,
+                detail: {
+                    reason: 'password',
+                    parameters: { password }
+                }
             }
         }
     }
+    else {
+        //auto generate a password
+        password = `Aa-${newGuid()}!${(new Date()).getFullYear()}`;
+    }
 
-    const newUserId = newGuid();
+
+    const newUserId = user.id ? user.id : newGuid();
     const newOrganizationId = organizationId ? null : newGuid();
 
     let createdCosmosOrganizationId = '';
@@ -232,7 +240,7 @@ export const createUser = async (
     try {
 
         if (_track) console.log('Check existing users.', { user });
-        const existingUsers = await getUserOrgs(user.email, user.mobile);
+        const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type);
 
         if (!isNil(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)) {
             throw {
@@ -240,18 +248,19 @@ export const createUser = async (
                 type: 'ERROR_API_USEREXISTS',
                 source,
                 detail: {
-                    parameters: { email: user.email, mobile: user.mobile }
+                    parameters: { type, email, mobile }
                 }
             }
         }
 
-        context = { ...context, userId: newUserId, organizationId };
+        context.userId = newUserId;
+        if (organizationId) context.organizationId = organizationId;
 
         //If the new organizationId is provided, it means we will create a new organization
         if (newOrganizationId) {
             //create organization in cosmosDb
             createdCosmosOrganizationId = newOrganizationId;
-
+            context.organizationId = newOrganizationId;
             if (_track) console.log('Create new organization in the CosmsDB.', { createdCosmosOrganizationId });
 
             organization = await createRecord(
@@ -271,8 +280,6 @@ export const createUser = async (
             if (_track) console.log('Create new organization in the DynamoDB.', { createdDynamoOrganizationId });
             await dynamoDBCreate({ ...organization, id: createdDynamoOrganizationId }, DYNAMO_DB_TABLE_NAME_PROFILE);
 
-            //context.organization = organization;
-            context.organizationId = createdCosmosOrganizationId;
         }
 
         user.organizationId = context.organizationId;
@@ -281,16 +288,16 @@ export const createUser = async (
         user.emailVerificationCode = newGuid().split("-")[0].toUpperCase();
         user.mobileVerificationCode = newGuid().split("-")[0].toUpperCase();
         user.disableDelete = true;
-        user.createdFromDomain = getDomain(context.event, false);
+        //user.createdFromDomain = getDomain(context.event, false);
 
-        context.user = user;
-        context.userId = user.id;
-
-        user = await processUpsertData(context, user, { skipExistingData: true });
+        user = await processUpsertData({ ...context, user }, user, { skipExistingData: true });
 
         //insert user into cosmosDb
         if (_track) console.log('Create new user in the CosmsDB.', { user });
-        await cosmosDBUpsert(user);
+
+        user = await createRecord(context, user, { skipSecurityCheck: true });
+
+        // await cosmosDBUpsert(user);
         createdCosmosUserId = user.id;
 
         //insert user into dynamoDb
@@ -307,7 +314,7 @@ export const createUser = async (
             userPoolLambdaClientId: solution.auth.cognito.userPoolLambdaClientId,
             organizationId: context.organizationId,
             userId: user.id,
-            password: password
+            password
         });
         await createCognitoUser(
             solution.auth.cognito.userPoolId,
@@ -457,7 +464,7 @@ export const deleteUser = async (context: Record<string, any>, id: string, statu
     return user;
 }
 
-// export const deleteUser = async (context, id) => {
+// export const deleteUserCompletely = async (context, id) => {
 
 //     const { organizationId, userId } = context;
 //     const toDeleteUserId = id;

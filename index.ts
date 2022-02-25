@@ -8,5 +8,6 @@ export {
     updateUser,
     deleteUser,
     getUserOrgs,
-    verifyUserCode,
+    activateUser,
+    changeUserPassword
 } from './libs/user';
