@@ -3,11 +3,70 @@
 // //  This source code is licensed under the MIT license.
 // //  The detail information can be found in the LICENSE file in the root directory of this source tree.
 
-// import { isObject, isNonEmptyString } from 'douhub-helper-util';
-// import { HTTPERROR_403, HTTPERROR_400, ERROR_PARAMETER_MISSING } from 'douhub-helper-lambda';
-// import { s3Get } from 'douhub-helper-service';
-// import { find, isNil, isBoolean, isNumber, isArray } from 'lodash';
+import { _track, isNonEmptyString } from 'douhub-helper-util';
+import { CheckCallerResult, HTTPERROR_400, onError, LambdaResponse, 
+    ERROR_PARAMETER_MISSING, getPropValueOfEvent ,checkCaller, onSuccess, HTTPERROR_500 } from 'douhub-helper-lambda';
+import {cosmosDBQuery} from 'douhub-helper-service';
 
+export const retrieveCategoriesTags = async (event: any, type: 'categories' | 'tags' | 'both'): Promise<LambdaResponse> => {
+    const apiName = 'organization.retrieveCategories';
+    try {
+        const caller: CheckCallerResult = await checkCaller(event, { apiName, needAuthorization: true });
+        if (caller.type == 'STOP') return onSuccess(caller);
+        if (caller.type == 'ERROR') throw caller.error;
+
+        const regardingEntityName = getPropValueOfEvent(event, 'regardingEntityName');
+        if (!isNonEmptyString(regardingEntityName)) {
+            throw {
+                ...HTTPERROR_400,
+                type: ERROR_PARAMETER_MISSING,
+                source: apiName,
+                detail: {
+                    reason: 'The regardingEntityName is not provided.'
+                }
+            }
+        }
+
+        const regardingEntityType = getPropValueOfEvent(event, 'regardingEntityType');
+
+        const query = `SELECT * FROM c WHERE ${type == 'both' ? '(c.entityName=@entityName1 OR c.entityName=@entityName2)' : 'c.entityName=@entityName1'} AND c.organizationId=@organizationId AND c.regardingEntityName=@regardingEntityName ${isNonEmptyString(regardingEntityType) ? 'AND c.regardingEntityType=@regardingEntityType' : ''}`;
+        const parameters = [
+            {
+                name: '@entityName1',
+                value: type == 'tags' ? 'Tag' : 'Category'
+            },
+            {
+                name: '@entityName2',
+                value: type == 'both' ? 'Tag' : 'Category'
+            },
+            {
+                name: '@organizationId',
+                value: caller.context.organizationId
+            },
+            {
+                name: '@regardingEntityName',
+                value: regardingEntityName
+            },
+            {
+                name: '@regardingEntityType',
+                value: regardingEntityType
+            }
+
+        ];
+
+        const response = (await cosmosDBQuery(query, parameters, { includeAzureInfo: false }));
+        const results = type == 'both' ? response : (response.length > 0 ? response[0] : { entityName: type == 'categories' ? 'Category' : 'Tag', regardingEntityName, regardingEntityType, data: [] })
+       
+        return onSuccess(results);
+    }
+    catch (error) {
+        if (_track) console.error({ error });
+        throw new Error(JSON.stringify(onError({
+            ...HTTPERROR_500,
+            source: apiName
+        }, error)));
+    }
+};
 
 
 // export const updateOrganization = async (context: Record<string,any>, data: Record<string,any>) => {

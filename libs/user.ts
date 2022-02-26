@@ -5,31 +5,33 @@
 
 
 import {
-    cosmosDBDelete, cosmosDBQuery, cosmosDBRetrieve, cosmosDBUpdate,
+    S3_BUCKET_NAME_DATA, cosmosDBDelete, 
+    cosmosDBQuery, cosmosDBRetrieve, cosmosDBUpdate,
     createCognitoUser, updateCognitoPassword,
     dynamoDBCreate,
     dynamoDBDelete,
     dynamoDBUpsert,
-    DYNAMO_DB_TABLE_NAME_PROFILE
+    DYNAMO_DB_TABLE_NAME_PROFILE,
+    s3Get,sesSend
 } from 'douhub-helper-service';
 
 import {
     isNonEmptyString, newGuid, utcISOString, _track,
     isEmail, isPhoneNumber, isPassword, serialNumber, isObject,
-    checkEntityPrivilege, hasRole
+    checkEntityPrivilege, hasRole, getRecordEmailAddress
 } from 'douhub-helper-util';
 
-import { assign, find, isNil, isArray, isNumber } from 'lodash';
+import { assign, find, isNil, isArray, isNumber, map } from 'lodash';
 
 import {
-    createToken, onError,
+    createToken, 
     HTTPERROR_400, ERROR_PARAMETER_MISSING,
-    getDomain, HTTPERROR_403,
+    encryptToken, HTTPERROR_403,
     ERROR_PARAMETER_INVALID,
     ERROR_PERMISSION_DENIED
 } from "douhub-helper-lambda";
 
-import { createRecord, processUpsertData, updateRecord } from 'douhub-helper-data';
+import { createRecord, processUpsertData, updateRecord, processContent } from 'douhub-helper-data';
 
 /*
 Get the user organizations based on mobile number or email
@@ -98,6 +100,20 @@ export const verifyUserCodes = async (userId: string, type: 'email' | 'mobile', 
 
 }
 
+export const updateUserRoles = async (userId: string, roles: string[]): Promise<boolean> => {
+
+
+    const user = await cosmosDBRetrieve(userId);
+    if (isNil(user)) return false;
+
+    const newUser: Record<string,any> = {...user, roles};
+
+    //direct cosmosDb update
+    await cosmosDBUpdate(newUser);
+    await dynamoDBUpsert({ ...newUser, id: `user.${newUser.id}` }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
+    return true;
+};
+
 export const activateUser = async (userId: string, type: 'email' | 'mobile', codes: string): Promise<boolean> => {
 
 
@@ -105,8 +121,8 @@ export const activateUser = async (userId: string, type: 'email' | 'mobile', cod
     if (isNil(verifiedUser)) return false;
 
     const user = assign({}, verifiedUser, type == 'email' ?
-        { emailVerifiedOn: utcISOString() } :
-        { mobileVerifiedOn: utcISOString() });
+        { emailVerifiedOn: utcISOString(), emailVerificationCode: newGuid().split("-")[0].toUpperCase() } :
+        { mobileVerifiedOn: utcISOString(), mobileVerificationCode: newGuid().split("-")[0].toUpperCase() });
 
     //direct cosmosDb update
     await cosmosDBUpdate(user);
@@ -462,6 +478,42 @@ export const deleteUser = async (context: Record<string, any>, id: string, statu
     await dynamoDBUpsert({ ...user, stateCode: -1, statusCode, id: `user.${user.id}`, modifiedOn: utcNow, modifiedBy: context.userId }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
 
     return user;
+}
+
+export const sendVerifyToken = async (
+    solutionId: string, 
+    user: Record<string,any>, 
+    type: string, 
+    action: string): Promise<string> => {
+
+    const userId = user['id'];
+    const code = type == 'email' ? user['emailVerificationCode'] : user['mobileVerificationCode'];
+    const tokenId = `verification.${userId}`;
+    const email = user['email'];
+    const mobile =user['mobile'];
+
+    //create token;
+    await createToken(tokenId, action, code);
+
+    const tokenInEmail = await encryptToken(`${userId}|${action}|${type}|${type == 'email' ? email : mobile}|${newGuid()}`);
+
+    const emailTemplateS3 = await s3Get(S3_BUCKET_NAME_DATA, `${solutionId}/email-${action}.json`);
+    const emailTemplate = emailTemplateS3 && JSON.parse(emailTemplateS3.content);
+    const sender = getRecordEmailAddress(emailTemplate.sender);
+    const to = getRecordEmailAddress(user);
+    const cc: any = map(emailTemplate.cc, (c) => getRecordEmailAddress(c));
+
+    const context = {solutionId, userId: user.id, organizationId: user.organizationId, user};
+    
+    const htmlMessage = isNonEmptyString(emailTemplate?.htmlMessage) ? await processContent(context, true, emailTemplate?.htmlMessage, { ...user, token: tokenInEmail }) : '';
+    const textMessage = isNonEmptyString(emailTemplate?.textMessage) ? await processContent(context, true, emailTemplate?.textMessage, { ...user, token: tokenInEmail }) : '';
+
+    if (sender && to && (isNonEmptyString(htmlMessage) || isNonEmptyString(textMessage))) {
+        if (_track) console.log({ sender, to: [to], subject: emailTemplate?.subject, htmlMessage, textMessage, cc });
+        await sesSend(sender, [to], emailTemplate?.subject, htmlMessage, textMessage, cc);
+    }
+
+    return tokenInEmail;
 }
 
 // export const deleteUserCompletely = async (context, id) => {

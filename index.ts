@@ -9,5 +9,11 @@ export {
     deleteUser,
     getUserOrgs,
     activateUser,
-    changeUserPassword
+    sendVerifyToken,
+    changeUserPassword,
+    updateUserRoles
 } from './libs/user';
+
+export {
+    retrieveCategoriesTags
+} from './libs/organization';
