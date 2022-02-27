@@ -395,37 +395,8 @@ export const updateUser = async (context: Record<string, any>, user: Record<stri
         }
     }
 
-    const newRoles = isArray(user.roles) ? [...user.roles] : [];
-    const newLicenses = isArray(user.licenses) ? [...user.licenses] : [];
-
     //updateRecord function will not change roles and licenses
     const newUser = await updateRecord(context, user);
-
-    const existingRoles = isArray(newUser.roles) ? newUser.roles : [];
-    const existingLicenses = isArray(newUser.licenses) ? newUser.licenses : [];
-
-    //Only the user with the correct role can change the role and licenses of a user
-    if (JSON.stringify(newRoles) != (JSON.stringify(existingRoles)) ||
-        JSON.stringify(newLicenses) != (JSON.stringify(existingLicenses))) {
-        let updateRolesAndLicenses = false;
-        if (hasRole(context, 'ORG-ADMIN', newUser) || hasRole(context, 'USER-MANAGER', newUser)) {
-            updateRolesAndLicenses = true;
-            newUser.roles = newRoles;
-            newUser.licenses = newLicenses;
-        }
-
-        if (hasRole(context, 'ROLE-MANAGER', newUser)) {
-            updateRolesAndLicenses = true;
-            newUser.roles = newRoles;
-        }
-
-        if (hasRole(context, 'LICENSE-MANAGER', newUser)) {
-            updateRolesAndLicenses = true;
-            newUser.licenses = newLicenses;
-        }
-
-        if (updateRolesAndLicenses) await cosmosDBUpdate(newUser);
-    }
 
     await dynamoDBUpsert({ ...newUser, id: `user.${newUser.id}` }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
 
@@ -456,17 +427,6 @@ export const deleteUser = async (context: Record<string, any>, id: string, statu
             source,
             detail: {
                 reason: 'The user does not exist'
-            }
-        }
-    }
-
-    if (!(hasRole(context, 'ORG-ADMIN', user) || hasRole(context, 'USER-MANAGER', user))) {
-        throw {
-            ...HTTPERROR_403,
-            type: ERROR_PERMISSION_DENIED,
-            source,
-            detail: {
-                reason: 'user.entityName="User"'
             }
         }
     }
