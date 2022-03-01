@@ -5,14 +5,14 @@
 
 
 import {
-    S3_BUCKET_NAME_DATA, cosmosDBDelete, 
+    S3_BUCKET_NAME_DATA, cosmosDBDelete,
     cosmosDBQuery, cosmosDBRetrieve, cosmosDBUpdate,
     createCognitoUser, updateCognitoPassword,
     dynamoDBCreate,
     dynamoDBDelete,
     dynamoDBUpsert,
     DYNAMO_DB_TABLE_NAME_PROFILE,
-    s3Get,sesSend
+    s3Get, sesSend
 } from 'douhub-helper-service';
 
 import {
@@ -24,7 +24,7 @@ import {
 import { assign, find, isNil, isArray, isNumber, map } from 'lodash';
 
 import {
-    createToken, 
+    createToken,
     HTTPERROR_400, ERROR_PARAMETER_MISSING,
     encryptToken, HTTPERROR_403,
     ERROR_PARAMETER_INVALID,
@@ -83,7 +83,7 @@ export const getUserOrgs = async (value: string, type: 'email' | 'mobile'): Prom
     ]);
 };
 
-export const verifyUserCodes = async (userId: string, type: 'email' | 'mobile', codes: string): Promise<Record<string, any> | undefined> => {
+export const getUserVerificationCodes = async (userId: string, type: 'email' | 'mobile', codes: string): Promise<Record<string, any> | undefined> => {
     const users = await cosmosDBQuery(`SELECT * FROM c 
     WHERE c.id=@id AND
     ${type == 'email' ? 'c.emailVerificationCode=@codes' : 'c.mobileVerificationCode=@codes'}`, [
@@ -106,7 +106,7 @@ export const updateUserRoles = async (userId: string, roles: string[]): Promise<
     const user = await cosmosDBRetrieve(userId);
     if (isNil(user)) return false;
 
-    const newUser: Record<string,any> = {...user, roles};
+    const newUser: Record<string, any> = { ...user, roles };
 
     //direct cosmosDb update
     await cosmosDBUpdate(newUser);
@@ -114,15 +114,19 @@ export const updateUserRoles = async (userId: string, roles: string[]): Promise<
     return true;
 };
 
-export const activateUser = async (userId: string, type: 'email' | 'mobile', codes: string): Promise<boolean> => {
+export const activateUser = async (userId: string, type: 'email' | 'mobile', codes: string, action: string): Promise<boolean> => {
 
-
-    const verifiedUser = await verifyUserCodes(userId, type, codes);
+    const verifiedUser = await getUserVerificationCodes(userId, type, codes);
     if (isNil(verifiedUser)) return false;
 
     const user = assign({}, verifiedUser, type == 'email' ?
         { emailVerifiedOn: utcISOString(), emailVerificationCode: newGuid().split("-")[0].toUpperCase() } :
         { mobileVerifiedOn: utcISOString(), mobileVerificationCode: newGuid().split("-")[0].toUpperCase() });
+
+    if (action == 'activate-with-password' || action == 'activate-without-password') {
+        user.statusCode = 10;
+        user.statusCode_info = action;
+    }
 
     //direct cosmosDb update
     await cosmosDBUpdate(user);
@@ -133,7 +137,7 @@ export const activateUser = async (userId: string, type: 'email' | 'mobile', cod
 
 export const changeUserPassword = async (solution: Record<string, any>, userId: string, password: string, type: 'email' | 'mobile', codes: string): Promise<boolean> => {
 
-    const verifiedUser = await verifyUserCodes(userId, type, codes);
+    const verifiedUser = await getUserVerificationCodes(userId, type, codes);
     if (isNil(verifiedUser)) return false;
 
     const organizationId = verifiedUser.organizationId;
@@ -396,7 +400,21 @@ export const updateUser = async (context: Record<string, any>, user: Record<stri
     }
 
     //updateRecord function will not change roles and licenses
-    const newUser = await updateRecord(context, user);
+    let newUser = await updateRecord(context, user);
+
+    //update roles if necessary
+    if (JSON.stringify(isArray(user?.roles)?user?.roles:[])!=JSON.stringify(isArray(newUser?.roles)?newUser?.roles:[]))
+    {
+        if ((hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER'))) {
+            if (_track) console.log('Update user roles.')
+            newUser.roles = isArray(user?.roles)?user?.roles:[];
+            newUser = await cosmosDBUpdate(newUser);
+        }
+        else
+        {
+            if (_track) console.log(`The user ${context.userId} can not update rules. (need ORG-ADMIN or USER-MANAGER)`)
+        }
+    }
 
     await dynamoDBUpsert({ ...newUser, id: `user.${newUser.id}` }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
 
@@ -441,16 +459,20 @@ export const deleteUser = async (context: Record<string, any>, id: string, statu
 }
 
 export const sendVerifyToken = async (
-    solutionId: string, 
-    user: Record<string,any>, 
-    type: string, 
-    action: string): Promise<string> => {
+    solutionId: string,
+    userId: string,
+    type: string,
+    action: string,
+    domain?: string): Promise<string> => {
 
-    const userId = user['id'];
+    //retrieve user now
+    const user = await cosmosDBRetrieve(userId);
+    if (isNil(user)) return '';
+
     const code = type == 'email' ? user['emailVerificationCode'] : user['mobileVerificationCode'];
     const tokenId = `verification.${userId}`;
     const email = user['email'];
-    const mobile =user['mobile'];
+    const mobile = user['mobile'];
 
     //create token;
     await createToken(tokenId, action, code);
@@ -463,14 +485,21 @@ export const sendVerifyToken = async (
     const to = getRecordEmailAddress(user);
     const cc: any = map(emailTemplate.cc, (c) => getRecordEmailAddress(c));
 
-    const context = {solutionId, userId: user.id, organizationId: user.organizationId, user};
-    
-    const htmlMessage = isNonEmptyString(emailTemplate?.htmlMessage) ? await processContent(context, true, emailTemplate?.htmlMessage, { ...user, token: tokenInEmail }) : '';
-    const textMessage = isNonEmptyString(emailTemplate?.textMessage) ? await processContent(context, true, emailTemplate?.textMessage, { ...user, token: tokenInEmail }) : '';
+    const context = { solutionId, userId: user.id, organizationId: user.organizationId, user };
+
+    const htmlMessage = isNonEmptyString(emailTemplate?.htmlMessage) ? await processContent(context, true, emailTemplate?.htmlMessage, { ...user, token: tokenInEmail, domain }) : '';
+    const textMessage = isNonEmptyString(emailTemplate?.textMessage) ? await processContent(context, true, emailTemplate?.textMessage, { ...user, token: tokenInEmail, domain }) : '';
 
     if (sender && to && (isNonEmptyString(htmlMessage) || isNonEmptyString(textMessage))) {
         if (_track) console.log({ sender, to: [to], subject: emailTemplate?.subject, htmlMessage, textMessage, cc });
         await sesSend(sender, [to], emailTemplate?.subject, htmlMessage, textMessage, cc);
+
+        if (action == 'activate-with-password' || action == 'activate-without-password') {
+            user.statusCode = 5; //invite out
+            user.statusCode_info = action; //invite out
+            await cosmosDBUpdate(user);
+        }
+
     }
 
     return tokenInEmail;
