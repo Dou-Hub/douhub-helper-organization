@@ -18,10 +18,10 @@ import {
 import {
     isNonEmptyString, newGuid, utcISOString, _track,
     isEmail, isPhoneNumber, isPassword, serialNumber, isObject,
-    checkEntityPrivilege, hasRole, getRecordEmailAddress
+    checkEntityPrivilege, hasRole, getRecordEmailAddress, isGuid
 } from 'douhub-helper-util';
 
-import { assign, find, isNil, isArray, isNumber, map } from 'lodash';
+import { assign, find, isNil, isArray, isNumber, map, cloneDeep } from 'lodash';
 
 import {
     createToken,
@@ -259,18 +259,59 @@ export const createUser = async (
 
     try {
 
-        if (_track) console.log('Check existing users.', { user });
-        const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type);
-
-        if (!isNil(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)) {
-            throw {
-                ...HTTPERROR_400,
-                type: 'ERROR_API_USEREXISTS',
-                source,
-                detail: {
-                    parameters: { type, email, mobile }
+        const membership = user['_membership'];
+        if (isNonEmptyString(membership)) {
+            const membershipInfo = membership.split('|');
+            user.membership = {};
+            user.membership = cloneDeep(membership);
+            if (isGuid(membershipInfo[0])) {
+                user.membership[membershipInfo[0]] = [];
+                if (membershipInfo.length > 1 && isNonEmptyString(membershipInfo[1])) {
+                    user.membership[membershipInfo[0]].push(membershipInfo[1]);
                 }
             }
+            delete user['_membership'];
+        }
+
+        if (_track) console.log('Check existing users.', { user });
+        const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type);
+        let existingUser = isNonEmptyString(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)
+
+        //create user in an existing organization, check whether the user alread exists
+        if (isObject(existingUser)) {
+
+            //retrieve the full record of the existing user
+            existingUser = await cosmosDBRetrieve(existingUser.id);
+
+            console.log({existingUser:JSON.stringify(existingUser)});
+
+            if (user.membership) {
+                if (!existingUser.membership) existingUser.membership = {};
+                existingUser.membership = { ...existingUser.membership, ...user.membership };
+            }
+            delete user.id;
+            user = cloneDeep({ ...existingUser, ...user });
+            if (_track) console.log('The user data to update.', { user: JSON.stringify(user) });
+            
+            //If user exists, we will update and exit
+            if (_track) console.log('Update user in the CosmosDB.', { user: JSON.stringify(user) });
+            user = await updateRecord({ ...context, user }, user, { skipSecurityCheck: true });
+
+            const updatedDynamoUserId = `user.${user.id}`;
+            if (_track) console.log('Update user in the DynamoDB.', { updatedDynamoUserId });
+            await dynamoDBUpsert({ ...user, id: updatedDynamoUserId }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
+
+            return { user, organization };
+
+            // throw {
+            //     ...HTTPERROR_400,
+            //     type: 'ERROR_API_USEREXISTS',
+            //     source,
+            //     detail: {
+            //         parameters: { type, email, mobile }
+            //     }
+            // }
+
         }
 
         context.userId = newUserId;
@@ -308,13 +349,15 @@ export const createUser = async (
         user.emailVerificationCode = newGuid().split("-")[0].toUpperCase();
         user.mobileVerificationCode = newGuid().split("-")[0].toUpperCase();
         user.disableDelete = true;
+
+
         //user.createdFromDomain = getDomain(context.event, false);
 
         user = await processUpsertData({ ...context, user }, user, { skipExistingData: true });
 
+
         //insert user into cosmosDb
         if (_track) console.log('Create new user in the CosmsDB.', { user });
-
         user = await createRecord(context, user, { skipSecurityCheck: true });
 
         // await cosmosDBUpsert(user);
@@ -403,15 +446,13 @@ export const updateUser = async (context: Record<string, any>, user: Record<stri
     let newUser = await updateRecord(context, user);
 
     //update roles if necessary
-    if (JSON.stringify(isArray(user?.roles)?user?.roles:[])!=JSON.stringify(isArray(newUser?.roles)?newUser?.roles:[]))
-    {
+    if (JSON.stringify(isArray(user?.roles) ? user?.roles : []) != JSON.stringify(isArray(newUser?.roles) ? newUser?.roles : [])) {
         if ((hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER'))) {
             if (_track) console.log('Update user roles.')
-            newUser.roles = isArray(user?.roles)?user?.roles:[];
+            newUser.roles = isArray(user?.roles) ? user?.roles : [];
             newUser = await cosmosDBUpdate(newUser);
         }
-        else
-        {
+        else {
             if (_track) console.log(`The user ${context.userId} can not update rules. (need ORG-ADMIN or USER-MANAGER)`)
         }
     }
