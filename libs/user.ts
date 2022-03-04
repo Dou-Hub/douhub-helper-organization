@@ -158,7 +158,16 @@ export const createUser = async (
     context: {
         userId: string,
         organizationId: string,
-        solution: Record<string, any>
+        solutionId: string,
+        userPoolId: string,
+        userPoolLambdaClientId: string,
+        passwordRules: {
+            needLowerCaseLetter: boolean,
+            needUpperCaseLetter: boolean,
+            needDigit: boolean,
+            needSepcialChar: boolean,
+            minLen: number
+        }
     },
     userData: Record<string, any>,
     type: 'email' | 'mobile',
@@ -172,6 +181,7 @@ export const createUser = async (
     const source = 'createUser';
     const callerUserOrganizationId = context.organizationId;
     const callerUserId = context.userId;
+    const {passwordRules, userPoolId, userPoolLambdaClientId, solutionId }= context;
 
     //delete the attribute that should not be provided during create user
 
@@ -206,28 +216,10 @@ export const createUser = async (
                 }
             }
         }
-        else {
-
-            if (!checkEntityPrivilege(context, 'User', undefined, 'create')) {
-                throw {
-                    ...HTTPERROR_403,
-                    type: ERROR_PERMISSION_DENIED,
-                    source,
-                    detail: {
-                        reason: 'The caller has no permission to create the user in the organization.',
-                        parameters: { callerId: callerUserId, organizationId }
-                    }
-                }
-            }
-        }
     }
 
-
-    const solution = context.solution;
-
-
-    if (isNonEmptyString(password)) {
-        if (!solution?.auth?.passwordRules || solution?.auth?.passwordRules && !isPassword(password, solution.auth.passwordRules)) {
+   if (isNonEmptyString(password)) {
+        if (!isPassword(password, passwordRules)) {
             throw {
                 ...HTTPERROR_400,
                 type: ERROR_PARAMETER_INVALID,
@@ -283,7 +275,7 @@ export const createUser = async (
             //retrieve the full record of the existing user
             existingUser = await cosmosDBRetrieve(existingUser.id);
 
-            console.log({existingUser:JSON.stringify(existingUser)});
+            console.log({ existingUser: JSON.stringify(existingUser) });
 
             if (user.membership) {
                 if (!existingUser.membership) existingUser.membership = {};
@@ -292,7 +284,7 @@ export const createUser = async (
             delete user.id;
             user = cloneDeep({ ...existingUser, ...user });
             if (_track) console.log('The user data to update.', { user: JSON.stringify(user) });
-            
+
             //If user exists, we will update and exit
             if (_track) console.log('Update user in the CosmosDB.', { user: JSON.stringify(user) });
             user = await updateRecord({ ...context, user }, user, { skipSecurityCheck: true });
@@ -331,7 +323,7 @@ export const createUser = async (
                     id: createdCosmosOrganizationId,
                     entityName: "Organization",
                     name: 'My Organization',
-                    solutionId: solution.id,
+                    solutionId,
                     disableDelete: true
                 }, { skipSecurityCheck: true });
 
@@ -373,15 +365,15 @@ export const createUser = async (
         userToken = await createToken(newUserId, 'user', userTokenData);
 
         if (_track) console.log('Create new user in Cognito.', {
-            userPoolId: solution.auth.cognito.userPoolId,
-            userPoolLambdaClientId: solution.auth.cognito.userPoolLambdaClientId,
+            userPoolId: userPoolId,
+            userPoolLambdaClientId,
             organizationId: context.organizationId,
             userId: user.id,
             password
         });
         await createCognitoUser(
-            solution.auth.cognito.userPoolId,
-            solution.auth.cognito.userPoolLambdaClientId,
+            userPoolId,
+            userPoolLambdaClientId,
             context.organizationId,
             user.id,
             password
