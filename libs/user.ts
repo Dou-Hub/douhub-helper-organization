@@ -251,20 +251,6 @@ export const createUser = async (
 
     try {
 
-        const membership = user['_membership'];
-        if (isNonEmptyString(membership)) {
-            const membershipInfo = membership.split('|');
-            user.membership = {};
-            user.membership = cloneDeep(membership);
-            if (isGuid(membershipInfo[0])) {
-                user.membership[membershipInfo[0]] = [];
-                if (membershipInfo.length > 1 && isNonEmptyString(membershipInfo[1])) {
-                    user.membership[membershipInfo[0]].push(membershipInfo[1]);
-                }
-            }
-            delete user['_membership'];
-        }
-
         if (_track) console.log('Check existing users.', { user });
         const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type);
         let existingUser = isNonEmptyString(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)
@@ -274,8 +260,6 @@ export const createUser = async (
 
             //retrieve the full record of the existing user
             existingUser = await cosmosDBRetrieve(existingUser.id);
-
-            console.log({ existingUser: JSON.stringify(existingUser) });
 
             if (user.membership) {
                 if (!existingUser.membership) existingUser.membership = {};
@@ -287,7 +271,7 @@ export const createUser = async (
 
             //If user exists, we will update and exit
             if (_track) console.log('Update user in the CosmosDB.', { user: JSON.stringify(user) });
-            user = await updateRecord({ ...context, user }, user, { skipSecurityCheck: true });
+            user = await updateRecord({ ...context, user }, user, { skipSecurityCheck: true, skipDuplicationCheck:true, skipSystemPropertyCheck:true });
 
             const updatedDynamoUserId = `user.${user.id}`;
             if (_track) console.log('Update user in the DynamoDB.', { updatedDynamoUserId });
