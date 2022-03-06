@@ -33,6 +33,57 @@ import {
 
 import { createRecord, processUpsertData, updateRecord, processContent } from 'douhub-helper-data';
 
+export const processCreateUserRequests = (context: Record<string, any>, apiName: string) => {
+
+    const { user, solution } = context;
+
+    const solutionId = solution?.id;
+    const organizationId = user?.organizationId;
+    const userId = user?.id;
+    const auth = solution?.auth;
+    const cognito = auth?.cognito;
+
+    if (isNil(organizationId)) {
+        throw {
+            ...HTTPERROR_400,
+            type: ERROR_PARAMETER_MISSING,
+            source: apiName,
+            detail: {
+                reason: 'The context.user.organizationId does not exist.',
+                parameters: { user }
+            }
+        }
+    }
+
+    if (!isObject(cognito)) {
+        throw {
+            ...HTTPERROR_400,
+            type: ERROR_PARAMETER_MISSING,
+            source: apiName,
+            detail: {
+                reason: 'The context.solution.cognito does not exist.',
+                parameters: { solution }
+            }
+        }
+    }
+
+    console.log({context})
+
+    if (!(hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER'))) {
+        throw {
+            ...HTTPERROR_403,
+            type: ERROR_PERMISSION_DENIED,
+            source: apiName,
+            detail: {
+                reason: 'The caller has no permission to create a user. (the ORG-ADMIN or USER-MANAGER role is required.)'
+            }
+        }
+    }
+
+    const { userPoolLambdaClientId, userPoolId, passwordRules } = cognito;
+    return { userId, organizationId, solutionId, userPoolId, userPoolLambdaClientId, passwordRules };
+}
+
 /*
 Get the user organizations based on mobile number or email
 Return all organizations user belong to. 

@@ -11,7 +11,8 @@ export {
     activateUser,
     sendVerifyToken,
     changeUserPassword,
-    updateUserRoles
+    updateUserRoles,
+    processCreateUserRequests
 } from './libs/user';
 
 export {
