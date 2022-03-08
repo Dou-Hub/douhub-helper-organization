@@ -598,6 +598,29 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.0.4.tgz#a167e46c10d05a07ab299fc518793b0cff8f6924"
   integrity sha512-BuJuXRSJNQ3QoKA6GWWDyuLpOUck+9hAXNMCnrloc1aWVoy6Xq6t9PUV08aBZ4Lutqq2LEHM486bpZqoViScog==
 
+"@sendgrid/client@^7.6.1":
+  version "7.6.1"
+  resolved "https://registry.yarnpkg.com/@sendgrid/client/-/client-7.6.1.tgz#de17fe9f04af3bdb69aca44fc407316de87cea3b"
+  integrity sha512-q4U5OhcbJjs+lLVv/LhZSc28feiVCFMgvG9aYcRI5X4tKArnrrGDWb5HMITR9vaAtX42TXhyPFjHr1fk/Q1loQ==
+  dependencies:
+    "@sendgrid/helpers" "^7.6.0"
+    axios "^0.21.4"
+
+"@sendgrid/helpers@^7.6.0":
+  version "7.6.0"
+  resolved "https://registry.yarnpkg.com/@sendgrid/helpers/-/helpers-7.6.0.tgz#b381bfab391bcd66c771811b22bb6bb2d5c1dfc6"
+  integrity sha512-0uWD+HSXLl4Z/X3cN+UMQC20RE7xwAACgppnfjDyvKG0KvJcUgDGz7HDdQkiMUdcVWfmyk6zKSg7XKfKzBjTwA==
+  dependencies:
+    deepmerge "^4.2.2"
+
+"@sendgrid/mail@^7.6.1":
+  version "7.6.1"
+  resolved "https://registry.yarnpkg.com/@sendgrid/mail/-/mail-7.6.1.tgz#f7bbfc93781b0b6126549bf4b3649805295b02aa"
+  integrity sha512-F+HXpDLIU4PGZyZznOiFLDGJDwLn2qh7/wD5MvwurrldDx5DaGQHrYBKHopceOl15FVuq9ElU9VIxQJF8SMvTg==
+  dependencies:
+    "@sendgrid/client" "^7.6.1"
+    "@sendgrid/helpers" "^7.6.0"
+
 "@sinonjs/commons@^1.7.0":
   version "1.8.3"
   resolved "https://registry.yarnpkg.com/@sinonjs/commons/-/commons-1.8.3.tgz#3802ddd21a50a949b6721ddd72da36e67e7f1b2d"
@@ -968,6 +991,13 @@ aws-sdk@^2.1033.0, aws-sdk@^2.814.0:
     url "0.10.3"
     uuid "3.3.2"
     xml2js "0.4.19"
+
+axios@^0.21.4:
+  version "0.21.4"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-0.21.4.tgz#c67b90dc0568e5c1cf2b0b858c43ba28e2eda575"
+  integrity sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==
+  dependencies:
+    follow-redirects "^1.14.0"
 
 axios@^0.24.0:
   version "0.24.0"
@@ -1484,10 +1514,10 @@ domutils@^2.5.2, domutils@^2.7.0, domutils@^2.8.0:
     domelementtype "^2.2.0"
     domhandler "^4.2.0"
 
-douhub-helper-data@^1.0.48:
-  version "1.0.48"
-  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.48.tgz#58267c6ccd067d02d6c824103e8b9ebc3e87f154"
-  integrity sha512-R1qR61SiyCDcxJY9/LEVpfXHtXdQkgWXXMETi2mV7IWFuRuQR4sJOHnqF6EUqlZ5FPEI57FMn2ivaOwETJYigQ==
+douhub-helper-data@^1.0.49:
+  version "1.0.49"
+  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.49.tgz#c098b4e66c1954b8033aec1bcec183f3cf81ecd3"
+  integrity sha512-mw+ScnNhMU4wJ1KDtHZvf5OFihX3P0QtIYEweMs4eUnVbEYD+S8Pwf5fs5ftyMQTgwrSfiWWp6NZpe3Y9dSCZQ==
   dependencies:
     "@azure/cosmos" "^3.14.1"
     aws-lambda "^1.0.7"
@@ -1495,7 +1525,7 @@ douhub-helper-data@^1.0.48:
     cheerio "^1.0.0-rc.10"
     douhub-helper-lambda "1.0.53"
     douhub-helper-service "1.0.49"
-    douhub-helper-util "1.0.70"
+    douhub-helper-util "1.0.72"
     lodash "^4.17.21"
     marked "^4.0.12"
     moment "^2.29.1"
@@ -1527,6 +1557,19 @@ douhub-helper-service@1.0.49, douhub-helper-service@^1.0.49:
     lodash "^4.17.21"
     qs "^6.10.3"
 
+douhub-helper-service@1.0.51:
+  version "1.0.51"
+  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.51.tgz#fe551fac50eb9c99c70633d2b2adc87b8b4c15ed"
+  integrity sha512-cNqad5IqSCTjARbZhr4lucZPstTvHadTZRPyKXomKXQUsUB7RjNPOddyH9dRY4sikpsZvV6rJsCO14N3mg/SHg==
+  dependencies:
+    "@azure/cosmos" "^3.14.1"
+    "@elastic/elasticsearch" "^7.17.0"
+    "@sendgrid/mail" "^7.6.1"
+    aws-sdk "^2.1033.0"
+    douhub-helper-util "1.0.64"
+    lodash "^4.17.21"
+    qs "^6.10.3"
+
 douhub-helper-util@1.0.64:
   version "1.0.64"
   resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.64.tgz#e4409d87ed70fa63abe351609a4b559a5548affb"
@@ -1540,7 +1583,35 @@ douhub-helper-util@1.0.64:
     slugify "^1.6.4"
     uuid "^8.3.2"
 
-douhub-helper-util@1.0.70, douhub-helper-util@^1.0.70:
+douhub-helper-util@1.0.72:
+  version "1.0.72"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.72.tgz#05b55ec89406609e653220bc38d60bce0146c6be"
+  integrity sha512-56YjgpvkpaBU9QRcCN4BnmkQ8v2IO12bid7DXI5iLZ9oO4LLiNr7s9seX6a53nNhfH48bxxuGtBd6YkxBl6uGA==
+  dependencies:
+    axios "^0.24.0"
+    csvtojson "^2.0.10"
+    is-url "^1.2.4"
+    js-base64 "^3.7.2"
+    libphonenumber-js "^1.9.42"
+    lodash "^4.17.21"
+    slugify "^1.6.4"
+    uuid "^8.3.2"
+
+douhub-helper-util@1.0.74:
+  version "1.0.74"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.74.tgz#07eed7e66f5052e0e663b6320880be012820fd8e"
+  integrity sha512-SNOPMgIT3DsSRaOCIFLtPl/Qavs33IOaXBKkGjMki37qCcbV7ZRm4KJMAw966g+NfGDyzNE/pkL5OGRnz7caMA==
+  dependencies:
+    axios "^0.24.0"
+    csvtojson "^2.0.10"
+    is-url "^1.2.4"
+    js-base64 "^3.7.2"
+    libphonenumber-js "^1.9.42"
+    lodash "^4.17.21"
+    slugify "^1.6.4"
+    uuid "^8.3.2"
+
+douhub-helper-util@^1.0.70:
   version "1.0.70"
   resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.70.tgz#1a94fcb4d7727c0d31a112473339e4cc712f3bff"
   integrity sha512-MiuLtGCP3eQgB/5GtN6DW2O80tLzUM9kzQ4f97s0c/GbBtMzyzWpbvbdX+2D0klQmk4oQelOBTtKOZoitxx/9Q==
@@ -1942,6 +2013,11 @@ flatted@^3.1.0:
   version "3.2.4"
   resolved "https://registry.yarnpkg.com/flatted/-/flatted-3.2.4.tgz#28d9969ea90661b5134259f312ab6aa7929ac5e2"
   integrity sha512-8/sOawo8tJ4QOBX8YlQBMxL8+RLZfxMQOif9o0KUKTNTjMYElWPE0r/m5VNFxTRd0NSw8qSy8dajrwX4RYI1Hw==
+
+follow-redirects@^1.14.0:
+  version "1.14.9"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.9.tgz#dd4ea157de7bfaf9ea9b3fbd85aa16951f78d8d7"
+  integrity sha512-MQDfihBQYMcyy5dhRDJUHcw7lb2Pv/TuE6xP1vyraLukNDHKbDxDNaOE3NbCAdKQApno+GPRyo1YAp89yCjK4w==
 
 follow-redirects@^1.14.4:
   version "1.14.7"

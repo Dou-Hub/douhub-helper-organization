@@ -12,7 +12,7 @@ import {
     dynamoDBDelete,
     dynamoDBUpsert,
     DYNAMO_DB_TABLE_NAME_PROFILE,
-    s3Get, sesSend
+    s3Get, sendEmail
 } from 'douhub-helper-service';
 
 import {
@@ -66,8 +66,6 @@ export const processCreateUserRequests = (context: Record<string, any>, apiName:
             }
         }
     }
-
-    console.log({context})
 
     if (!(hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER'))) {
         throw {
@@ -232,7 +230,7 @@ export const createUser = async (
     const source = 'createUser';
     const callerUserOrganizationId = context.organizationId;
     const callerUserId = context.userId;
-    const {passwordRules, userPoolId, userPoolLambdaClientId, solutionId }= context;
+    const { passwordRules, userPoolId, userPoolLambdaClientId, solutionId } = context;
 
     //delete the attribute that should not be provided during create user
 
@@ -269,7 +267,7 @@ export const createUser = async (
         }
     }
 
-   if (isNonEmptyString(password)) {
+    if (isNonEmptyString(password)) {
         if (!isPassword(password, passwordRules)) {
             throw {
                 ...HTTPERROR_400,
@@ -322,7 +320,7 @@ export const createUser = async (
 
             //If user exists, we will update and exit
             if (_track) console.log('Update user in the CosmosDB.', { user: JSON.stringify(user) });
-            user = await updateRecord({ ...context, user }, user, { skipSecurityCheck: true, skipDuplicationCheck:true, skipSystemPropertyCheck:true });
+            user = await updateRecord({ ...context, user }, user, { skipSecurityCheck: true, skipDuplicationCheck: true, skipSystemPropertyCheck: true });
 
             const updatedDynamoUserId = `user.${user.id}`;
             if (_track) console.log('Update user in the DynamoDB.', { updatedDynamoUserId });
@@ -550,6 +548,15 @@ export const sendVerifyToken = async (
     const emailTemplateS3 = await s3Get(S3_BUCKET_NAME_DATA, `${solutionId}/email-${action}.json`);
     const emailTemplate = emailTemplateS3 && JSON.parse(emailTemplateS3.content);
     const sender = getRecordEmailAddress(emailTemplate.sender);
+    const senderService = emailTemplate?.sender?.service?emailTemplate?.sender?.service:null;
+    if (_track) console.log({
+        emailTemplate: JSON.stringify(emailTemplate), 
+        sender: emailTemplate?.sender?JSON.stringify(emailTemplate?.sender):null, 
+        senderService, 
+        service: (senderService == 'sg' || senderService == 'ses')
+    });
+
+    const service = (senderService == 'sg' || senderService == 'ses') ? senderService : 'ses';
     const to = getRecordEmailAddress(user);
     const cc: any = map(emailTemplate.cc, (c) => getRecordEmailAddress(c));
 
@@ -559,8 +566,8 @@ export const sendVerifyToken = async (
     const textMessage = isNonEmptyString(emailTemplate?.textMessage) ? await processContent(context, true, emailTemplate?.textMessage, { ...user, token: tokenInEmail, domain }) : '';
 
     if (sender && to && (isNonEmptyString(htmlMessage) || isNonEmptyString(textMessage))) {
-        if (_track) console.log({ sender, to: [to], subject: emailTemplate?.subject, htmlMessage, textMessage, cc });
-        await sesSend(sender, [to], emailTemplate?.subject, htmlMessage, textMessage, cc);
+        if (_track) console.log({ service, sender, to: [to], subject: emailTemplate?.subject, htmlMessage, textMessage, cc });
+        await sendEmail(service, sender, [to], emailTemplate?.subject, htmlMessage, textMessage, cc);
 
         if (action == 'activate-with-password' || action == 'activate-without-password') {
             user.statusCode = 5; //invite out
