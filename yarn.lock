@@ -1597,10 +1597,10 @@ douhub-helper-util@1.0.72:
     slugify "^1.6.4"
     uuid "^8.3.2"
 
-douhub-helper-util@1.0.74:
-  version "1.0.74"
-  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.74.tgz#07eed7e66f5052e0e663b6320880be012820fd8e"
-  integrity sha512-SNOPMgIT3DsSRaOCIFLtPl/Qavs33IOaXBKkGjMki37qCcbV7ZRm4KJMAw966g+NfGDyzNE/pkL5OGRnz7caMA==
+douhub-helper-util@1.0.76:
+  version "1.0.76"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.76.tgz#cc61415a6c728b6f1472fd87eadba677edda103c"
+  integrity sha512-LhgbmwRLk11mtOPorW5Ahy/HJkAiFIJxYhjhRpRhXR5iBtS4TkW2bxRKXvqzDHwmShPPNFap2hcQKhdzHbR0NQ==
   dependencies:
     axios "^0.24.0"
     csvtojson "^2.0.10"
