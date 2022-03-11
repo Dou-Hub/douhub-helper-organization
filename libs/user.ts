@@ -299,9 +299,9 @@ export const createUser = async (
     user.id = newUserId;
 
     try {
-
+        
         if (_track) console.log('Check existing users.', { user });
-        const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type);
+        const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type == 'email'?'email':'mobile');
         let existingUser = isNonEmptyString(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)
 
         //create user in an existing organization, check whether the user alread exists
@@ -309,11 +309,13 @@ export const createUser = async (
 
             //retrieve the full record of the existing user
             existingUser = await cosmosDBRetrieve(existingUser.id);
+            // if (_track) console.log({existingUser: JSON.stringify(existingUser)});
 
             if (user.membership) {
                 if (!existingUser.membership) existingUser.membership = {};
-                existingUser.membership = { ...existingUser.membership, ...user.membership };
+                user.membership = { ...existingUser.membership, ...user.membership };
             }
+
             delete user.id;
             user = cloneDeep({ ...existingUser, ...user });
             if (_track) console.log('The user data to update.', { user: JSON.stringify(user) });
