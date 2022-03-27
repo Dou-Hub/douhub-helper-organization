@@ -6,7 +6,7 @@
 
 import {
     S3_BUCKET_NAME_DATA, cosmosDBDelete,
-    cosmosDBQuery, cosmosDBRetrieve, cosmosDBUpdate,
+    cosmosDBQuery, cosmosDBRetrieveById, cosmosDBUpdate,
     createCognitoUser, updateCognitoPassword,
     dynamoDBCreate,
     dynamoDBDelete,
@@ -152,7 +152,7 @@ export const getUserVerificationCodes = async (userId: string, type: 'email' | '
 export const updateUserRoles = async (userId: string, roles: string[]): Promise<boolean> => {
 
 
-    const user = await cosmosDBRetrieve(userId);
+    const user = await cosmosDBRetrieveById(userId);
     if (isNil(user)) return false;
 
     const newUser: Record<string, any> = { ...user, roles };
@@ -210,7 +210,7 @@ export const createUser = async (
         solutionId: string,
         userPoolId: string,
         userPoolLambdaClientId: string,
-        passwordRules: {
+        passwordRules?: {
             needLowerCaseLetter: boolean,
             needUpperCaseLetter: boolean,
             needDigit: boolean,
@@ -224,7 +224,9 @@ export const createUser = async (
     organizationData?: Record<string, any>
 ): Promise<Record<string, any>> => {
 
-
+    if (isNil(organizationData)) organizationData = {};
+    organizationData.userPoolId = context.userPoolId;
+    organizationData.userPoolLambdaClientId = context.userPoolLambdaClientId;
     const organizationId: string | undefined = organizationData?.id;
 
     const source = 'createUser';
@@ -268,7 +270,7 @@ export const createUser = async (
     }
 
     if (isNonEmptyString(password)) {
-        if (!isPassword(password, passwordRules)) {
+        if (!isNil(passwordRules) && !isPassword(password, passwordRules)) {
             throw {
                 ...HTTPERROR_400,
                 type: ERROR_PARAMETER_INVALID,
@@ -299,16 +301,17 @@ export const createUser = async (
     user.id = newUserId;
 
     try {
-        
+
         if (_track) console.log('Check existing users.', { user });
-        const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type == 'email'?'email':'mobile');
+
+        const existingUsers = await getUserOrgs(type == 'email' ? email : mobile, type == 'email' ? 'email' : 'mobile');
         let existingUser = isNonEmptyString(organizationId) && find(existingUsers, (u) => u.organizationId == organizationId)
 
         //create user in an existing organization, check whether the user alread exists
         if (isObject(existingUser)) {
 
             //retrieve the full record of the existing user
-            existingUser = await cosmosDBRetrieve(existingUser.id);
+            existingUser = await cosmosDBRetrieveById(existingUser.id);
             // if (_track) console.log({existingUser: JSON.stringify(existingUser)});
 
             if (user.membership) {
@@ -469,8 +472,20 @@ export const updateUser = async (context: Record<string, any>, user: Record<stri
         }
     }
 
+    if (!(hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER') || user.id==context.userId)) 
+    {
+        throw {
+            ...HTTPERROR_403,
+            type: ERROR_PERMISSION_DENIED,
+            source,
+            detail: {
+                reason: 'The caller has no permission to update a user. (Only the context user or the user with ORG-ADMIN or USER-MANAGER role can update this user record.)'
+            }
+        }
+    }
+
     //updateRecord function will not change roles and licenses
-    let newUser = await updateRecord(context, user);
+    let newUser = await updateRecord(context, user, {skipSecurityCheck:true});
 
     //update roles if necessary
     if (JSON.stringify(isArray(user?.roles) ? user?.roles : []) != JSON.stringify(isArray(newUser?.roles) ? newUser?.roles : [])) {
@@ -505,7 +520,7 @@ export const deleteUser = async (context: Record<string, any>, id: string, statu
         }
     }
 
-    const user: any = await cosmosDBRetrieve(id);
+    const user: any = await cosmosDBRetrieveById(id);
     if (!user || user && user.entityName != 'User') {
         throw {
             ...HTTPERROR_400,
@@ -534,7 +549,7 @@ export const sendVerifyToken = async (
     domain?: string): Promise<string> => {
 
     //retrieve user now
-    const user = await cosmosDBRetrieve(userId);
+    const user = await cosmosDBRetrieveById(userId);
     if (isNil(user)) return '';
 
     const code = type == 'email' ? user['emailVerificationCode'] : user['mobileVerificationCode'];
@@ -550,11 +565,11 @@ export const sendVerifyToken = async (
     const emailTemplateS3 = await s3Get(S3_BUCKET_NAME_DATA, `${solutionId}/email-${action}.json`);
     const emailTemplate = emailTemplateS3 && JSON.parse(emailTemplateS3.content);
     const sender = getRecordEmailAddress(emailTemplate.sender);
-    const senderService = emailTemplate?.sender?.service?emailTemplate?.sender?.service:null;
+    const senderService = emailTemplate?.sender?.service ? emailTemplate?.sender?.service : null;
     if (_track) console.log({
-        emailTemplate: JSON.stringify(emailTemplate), 
-        sender: emailTemplate?.sender?JSON.stringify(emailTemplate?.sender):null, 
-        senderService, 
+        emailTemplate: JSON.stringify(emailTemplate),
+        sender: emailTemplate?.sender ? JSON.stringify(emailTemplate?.sender) : null,
+        senderService,
         service: (senderService == 'sg' || senderService == 'ses')
     });
 

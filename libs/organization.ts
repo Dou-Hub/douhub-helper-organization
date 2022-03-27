@@ -3,61 +3,38 @@
 // //  This source code is licensed under the MIT license.
 // //  The detail information can be found in the LICENSE file in the root directory of this source tree.
 
-import { _track, isNonEmptyString } from 'douhub-helper-util';
-import { CheckCallerResult, HTTPERROR_400, onError, LambdaResponse, 
-    ERROR_PARAMETER_MISSING, getPropValueOfEvent ,checkCaller, onSuccess, HTTPERROR_500 } from 'douhub-helper-lambda';
-import {cosmosDBQuery} from 'douhub-helper-service';
+import { _track, isNonEmptyString, hasRole, isObject } from 'douhub-helper-util';
+import { isNil } from 'lodash';
+import {
+    CheckCallerResult, HTTPERROR_400, onError, LambdaResponse, getBooleanValueOfEvent, createToken, getToken,
+    ERROR_PARAMETER_MISSING, HTTPERROR_403, checkCaller, onSuccess, HTTPERROR_500, ERROR_PERMISSION_DENIED
+} from 'douhub-helper-lambda';
+import { cosmosDBQuery, dynamoDBUpsert, DYNAMO_DB_TABLE_NAME_PROFILE } from 'douhub-helper-service';
+import { updateRecord } from 'douhub-helper-data';
 
-export const retrieveCategoriesTags = async (event: any, type: 'categories' | 'tags' | 'both'): Promise<LambdaResponse> => {
-    const apiName = 'organization.retrieveCategories';
+
+export const retrieveToken = async (event: any, type: 'api' | 'webhook'): Promise<LambdaResponse> => {
+    const apiName = `organization.${type}`;
     try {
-        const caller: CheckCallerResult = await checkCaller(event, { apiName, needAuthorization: true });
+        const caller: CheckCallerResult = await checkCaller(event, { apiName, needUserProfile: true, needOrganizationProfile: true });
         if (caller.type == 'STOP') return onSuccess(caller);
         if (caller.type == 'ERROR') throw caller.error;
+        const context = caller.context;
 
-        const regardingEntityName = getPropValueOfEvent(event, 'regardingEntityName');
-        if (!isNonEmptyString(regardingEntityName)) {
-            throw {
-                ...HTTPERROR_400,
-                type: ERROR_PARAMETER_MISSING,
-                source: apiName,
-                detail: {
-                    reason: 'The regardingEntityName is not provided.'
-                }
+        const create = getBooleanValueOfEvent(event, 'create', false);
+        const organizationId = context.organizationId;
+
+        if (hasRole(context, "ORG-ADMIN") && isNonEmptyString(type)) {
+            let token = await getToken(organizationId, type);
+            if (!isNonEmptyString(token?.token) || create) {
+                if (_track) console.log('create token')
+                token = await createToken(organizationId, type, {});
             }
+
+            if (!isNil(token)) return onSuccess(token);
         }
 
-        const regardingEntityType = getPropValueOfEvent(event, 'regardingEntityType');
-
-        const query = `SELECT * FROM c WHERE ${type == 'both' ? '(c.entityName=@entityName1 OR c.entityName=@entityName2)' : 'c.entityName=@entityName1'} AND c.organizationId=@organizationId AND c.regardingEntityName=@regardingEntityName ${isNonEmptyString(regardingEntityType) ? 'AND c.regardingEntityType=@regardingEntityType' : ''}`;
-        const parameters = [
-            {
-                name: '@entityName1',
-                value: type == 'tags' ? 'Tag' : 'Category'
-            },
-            {
-                name: '@entityName2',
-                value: type == 'both' ? 'Tag' : 'Category'
-            },
-            {
-                name: '@organizationId',
-                value: caller.context.organizationId
-            },
-            {
-                name: '@regardingEntityName',
-                value: regardingEntityName
-            },
-            {
-                name: '@regardingEntityType',
-                value: regardingEntityType
-            }
-
-        ];
-
-        const response = (await cosmosDBQuery(query, parameters, { includeAzureInfo: false }));
-        const results = type == 'both' ? response : (response.length > 0 ? response[0] : { entityName: type == 'categories' ? 'Category' : 'Tag', regardingEntityName, regardingEntityType, data: [] })
-       
-        return onSuccess(results);
+        return onSuccess({});
     }
     catch (error) {
         if (_track) console.error({ error });
@@ -69,49 +46,84 @@ export const retrieveCategoriesTags = async (event: any, type: 'categories' | 't
 };
 
 
-// export const updateOrganization = async (context: Record<string,any>, data: Record<string,any>) => {
+export const retrieveCategoriesTags = async (organizationId: string, type: 'categories' | 'tags' | 'both', regardingEntityName: string, regardingEntityType?: string): Promise<Record<string, any>> => {
+    const query = `SELECT * FROM c WHERE ${type == 'both' ? '(c.entityName=@entityName1 OR c.entityName=@entityName2)' : 'c.entityName=@entityName1'} AND c.organizationId=@organizationId AND c.regardingEntityName=@regardingEntityName ${isNonEmptyString(regardingEntityType) ? 'AND c.regardingEntityType=@regardingEntityType' : ''}`;
+    const parameters = [
+        {
+            name: '@entityName1',
+            value: type == 'tags' ? 'Tag' : 'Category'
+        },
+        {
+            name: '@entityName2',
+            value: type == 'both' ? 'Tag' : 'Category'
+        },
+        {
+            name: '@organizationId',
+            value: organizationId
+        },
+        {
+            name: '@regardingEntityName',
+            value: regardingEntityName
+        },
+        {
+            name: '@regardingEntityType',
+            value: regardingEntityType
+        }
 
-//     if (!isObject(data) || isObject(data) && !isNonEmptyString(data.id)) {
-//         throw {
-//             ...HTTPERROR_400,
-//             type: ERROR_PARAMETER_MISSING,
-//             source: 'organization.updateOrganization',
-//             detail: {
-//                 reason: 'The parameter (data.id) is not provided.',
-//                 data
-//             }
-//         }
-//     }
+    ];
+
+    const response = await cosmosDBQuery(query, parameters);
+    return type == 'both' ? response : (response.length > 0 ? response[0] : {
+        entityName: type == 'categories' ? 'Category' : 'Tag',
+        regardingEntityName, regardingEntityType, data: []
+    })
+
+};
+
+
+export const updateOrganization = async (context: Record<string, any>, organization: Record<string, any>): Promise<Record<string, any>> => {
+
+    const source = 'updateOrganization';
+
+    if (!(isObject(organization) && isNonEmptyString(organization.id))) {
+        throw {
+            ...HTTPERROR_400,
+            type: ERROR_PARAMETER_MISSING,
+            source,
+            detail: {
+                reason: 'organization.id'
+            }
+        }
+    }
+
+    if (organization.entityName != 'Organization') {
+        throw {
+            ...HTTPERROR_400,
+            type: ERROR_PARAMETER_MISSING,
+            source,
+            detail: {
+                reason: 'organization.entityName="Organization"'
+            }
+        }
+    }
+
+    if (!(hasRole(context, 'ORG-ADMIN') || organization.ownedBy==context.userId)) 
+    {
+        throw {
+            ...HTTPERROR_403,
+            type: ERROR_PERMISSION_DENIED,
+            source,
+            detail: {
+                reason: 'The caller has no permission to update the organization. (Only the owner of the organization or the user with ORG-ADMIN role can update this organization record.)'
+            }
+        }
+    }
+
+    //updateRecord function will not change roles and licenses
+    const newOrg = await updateRecord(context, organization, {skipSecurityCheck:true});
+
    
-//     //some entities is not allowed to be updated here
-//     if (data.entityName != 'Organization') {
-//         throw {
-//             ...HTTPERROR_400,
-//             type: 'ERROR_PARAMETER_ENTITY_IS_NOT_ORGANIZATION',
-//             source: 'context.checkCaller'
-//         }
-//    }
+    await dynamoDBUpsert({ ...newOrg, id: `organization.${newOrg.id}` }, DYNAMO_DB_TABLE_NAME_PROFILE, true);
 
-//     const cx = await _.cx(event);
-//     const user = cx.context.userId;
-//     try {
-
-//         const result = (await _.processDataForUpsert(cx, data));
-//         data = result.data;
-//         if (!checkRecordPrivilege(cx.context, result.existingData, 'update')) {
-//             throw `The user ${user.id} has no permission to update the organization (${data.id}).`;
-//         }
-
-//         data = await cosmosDb.update(cx, data, false);
-//         data.id = `organization.${data.id}`;
-
-//         await dynamoDb.upsert(cx, data, `${process.env.PREFIX}-profile`, true);
-//         data.id = data['_id'];
-
-//         return _.onSuccess(callback, cx, data);
-//     }
-//     catch (error) {
-//         return _.onError(callback, cx, error, 'ERROR_API_DATA_UPDATE', `Failed to update organization (id:${data.id})`);
-//     }
-// }
-
+    return newOrg;
+}

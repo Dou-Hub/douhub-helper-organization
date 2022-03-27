@@ -16,5 +16,7 @@ export {
 } from './libs/user';
 
 export {
-    retrieveCategoriesTags
+    retrieveCategoriesTags,
+    retrieveToken,
+    updateOrganization
 } from './libs/organization';
