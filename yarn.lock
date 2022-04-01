@@ -1514,41 +1514,41 @@ domutils@^2.5.2, domutils@^2.7.0, domutils@^2.8.0:
     domelementtype "^2.2.0"
     domhandler "^4.2.0"
 
-douhub-helper-data@^1.0.61:
-  version "1.0.61"
-  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.61.tgz#516e554ef9fad58a5ccf16a67127a3019b05a543"
-  integrity sha512-9jqmDLC52ORY4WnUDHYkzGb16aLqcpE/URE+UBxrwC7HTugx/mZ+w7HkCo6DkQ1KVhFLmLNov7tkwYm/h1VyuA==
+douhub-helper-data@^1.0.73:
+  version "1.0.73"
+  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.73.tgz#2543ff43e5a9ffe5148b51077644cd59adc151ee"
+  integrity sha512-Vfv2eCXMDf9VuYM5eLn/r/rbYHe9L4zx0lrvzl1nIHXFHAePBd2868PMzZTTcORNGPoux4RKwBLSeNM1U4ZnPw==
   dependencies:
     "@azure/cosmos" "^3.14.1"
     aws-lambda "^1.0.7"
     aws-sdk "^2.1033.0"
     cheerio "^1.0.0-rc.10"
-    douhub-helper-lambda "1.0.54"
-    douhub-helper-service "1.0.52"
+    douhub-helper-lambda "1.0.61"
+    douhub-helper-service "1.0.55"
     douhub-helper-util "1.0.82"
     lodash "^4.17.21"
     marked "^4.0.12"
     moment "^2.29.1"
     read-time-estimate "^0.0.3"
 
-douhub-helper-lambda@1.0.54:
-  version "1.0.54"
-  resolved "https://registry.yarnpkg.com/douhub-helper-lambda/-/douhub-helper-lambda-1.0.54.tgz#570d967b91f241b9d1162be9bcc865389b5b424f"
-  integrity sha512-DdecMHcZJRpHkjdaUY4zFeAe3HjGI+lN2TEbiFBigILso6/+oQZVmWlDMrg6v4fQzR5fhA/bVtm7o29x2FHnEQ==
+douhub-helper-lambda@1.0.61:
+  version "1.0.61"
+  resolved "https://registry.yarnpkg.com/douhub-helper-lambda/-/douhub-helper-lambda-1.0.61.tgz#5b095937e6fdd92ef66324a9b55e06b63bf7c0b1"
+  integrity sha512-HNPbXeQ2+rGtJ1z7eTavV9B1PQZpWtBYTdoHi31wBvt1hhqogKdeSevoH+G/BNxb3oj3lekIMbuJcecxXTNJZg==
   dependencies:
     aws-sdk "^2.1033.0"
     axios "^0.24.0"
     crypto-js "^4.1.1"
-    douhub-helper-service "^1.0.52"
+    douhub-helper-service "^1.0.55"
     douhub-helper-util "^1.0.82"
     lodash "^4.17.21"
     rate-limiter-flexible "^2.3.5"
     uuid "^8.3.2"
 
-douhub-helper-service@1.0.52, douhub-helper-service@^1.0.52:
-  version "1.0.52"
-  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.52.tgz#30ce0f5c6ae3f6ac9532c48c25fd40803fd47858"
-  integrity sha512-6fxuR1fVCsqTtco/XbrTgiJR6Y0sXqFdIoA6Ugxrag0HdTs3BTlRR1Bm7G/3e7FYpWYWcXC5JU3dFyCpuhN92w==
+douhub-helper-service@1.0.55, douhub-helper-service@^1.0.55:
+  version "1.0.55"
+  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.55.tgz#4a5678e78ab3bbd27979351a8300686bcfd9d77c"
+  integrity sha512-ky9ZBScGsBGSOAmcTdIZkmi3Yb6LIevDuZ279663jRxfmKlC7zJX+u/TI9lWtXn9PFWn9i8gQV8dXvF9Ocfpdg==
   dependencies:
     "@azure/cosmos" "^3.14.1"
     "@elastic/elasticsearch" "^7.17.0"
@@ -1562,6 +1562,20 @@ douhub-helper-util@1.0.82, douhub-helper-util@^1.0.82:
   version "1.0.82"
   resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.82.tgz#efcd2cd522d4388e806e3b30ac93dca1bb194d18"
   integrity sha512-6mtTd+PRmz2Ak61EJUVosUk33AQOVqv3UD9+e2CGDlJWBA5bQhQtILw8kRaEXLBsr6g7e5U2GteHtqsnM8lz2w==
+  dependencies:
+    axios "^0.24.0"
+    csvtojson "^2.0.10"
+    is-url "^1.2.4"
+    js-base64 "^3.7.2"
+    libphonenumber-js "^1.9.42"
+    lodash "^4.17.21"
+    slugify "^1.6.4"
+    uuid "^8.3.2"
+
+douhub-helper-util@1.0.83:
+  version "1.0.83"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.83.tgz#eb328e518ddc4b434f5579180c486cc62f4f209c"
+  integrity sha512-YUkq4c7QAkVHC01ET0GIXNu/0c6gkSmL3dVcykC4gU/gZXdAsJExcUkK8FBD2ETIdgZHBg8Ad5EHuPmW4xio6g==
   dependencies:
     axios "^0.24.0"
     csvtojson "^2.0.10"

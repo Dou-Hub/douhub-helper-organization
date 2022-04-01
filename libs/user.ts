@@ -33,7 +33,7 @@ import {
 
 import { createRecord, processUpsertData, updateRecord, processContent } from 'douhub-helper-data';
 
-export const processCreateUserRequests = (context: Record<string, any>, apiName: string) => {
+export const processCreateUserRequests = (context: Record<string, any>, signUp:boolean, apiName: string) => {
 
     const { user, solution } = context;
 
@@ -42,18 +42,6 @@ export const processCreateUserRequests = (context: Record<string, any>, apiName:
     const userId = user?.id;
     const auth = solution?.auth;
     const cognito = auth?.cognito;
-
-    if (isNil(organizationId)) {
-        throw {
-            ...HTTPERROR_400,
-            type: ERROR_PARAMETER_MISSING,
-            source: apiName,
-            detail: {
-                reason: 'The context.user.organizationId does not exist.',
-                parameters: { user }
-            }
-        }
-    }
 
     if (!isObject(cognito)) {
         throw {
@@ -67,7 +55,19 @@ export const processCreateUserRequests = (context: Record<string, any>, apiName:
         }
     }
 
-    if (!(hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER'))) {
+    if (isNil(organizationId) && !signUp) {
+        throw {
+            ...HTTPERROR_400,
+            type: ERROR_PARAMETER_MISSING,
+            source: apiName,
+            detail: {
+                reason: 'The context.user.organizationId does not exist.',
+                parameters: { user }
+            }
+        }
+    }
+
+    if (!(hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER')) && !signUp) {
         throw {
             ...HTTPERROR_403,
             type: ERROR_PERMISSION_DENIED,
@@ -231,7 +231,6 @@ export const createUser = async (
 
     const source = 'createUser';
     const callerUserOrganizationId = context.organizationId;
-    const callerUserId = context.userId;
     const { passwordRules, userPoolId, userPoolLambdaClientId, solutionId } = context;
 
     //delete the attribute that should not be provided during create user
@@ -398,7 +397,7 @@ export const createUser = async (
         if (_track) console.log('Create new user in the DynamoDB.', { createdDynamoUserId });
         await dynamoDBCreate({ ...user, id: createdDynamoUserId }, DYNAMO_DB_TABLE_NAME_PROFILE);
 
-        const userTokenData = { userId: newUserId, organizationId: newOrganizationId, roles: user.roles, licenses: user.licenses };
+        const userTokenData = { userId: newUserId, organizationId: context.organizationId, roles: user.roles, licenses: user.licenses };
         if (_track) console.log('Create new user token.', { userTokenData });
         userToken = await createToken(newUserId, 'user', userTokenData);
 
@@ -472,8 +471,7 @@ export const updateUser = async (context: Record<string, any>, user: Record<stri
         }
     }
 
-    if (!(hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER') || user.id==context.userId)) 
-    {
+    if (!(hasRole(context, 'ORG-ADMIN') || hasRole(context, 'USER-MANAGER') || user.id == context.userId)) {
         throw {
             ...HTTPERROR_403,
             type: ERROR_PERMISSION_DENIED,
@@ -485,7 +483,7 @@ export const updateUser = async (context: Record<string, any>, user: Record<stri
     }
 
     //updateRecord function will not change roles and licenses
-    let newUser = await updateRecord(context, user, {skipSecurityCheck:true});
+    let newUser = await updateRecord(context, user, { skipSecurityCheck: true });
 
     //update roles if necessary
     if (JSON.stringify(isArray(user?.roles) ? user?.roles : []) != JSON.stringify(isArray(newUser?.roles) ? newUser?.roles : [])) {
@@ -579,8 +577,10 @@ export const sendVerifyToken = async (
 
     const context = { solutionId, userId: user.id, organizationId: user.organizationId, user };
 
-    const htmlMessage = isNonEmptyString(emailTemplate?.htmlMessage) ? await processContent(context, true, emailTemplate?.htmlMessage, { ...user, token: tokenInEmail, domain }) : '';
-    const textMessage = isNonEmptyString(emailTemplate?.textMessage) ? await processContent(context, true, emailTemplate?.textMessage, { ...user, token: tokenInEmail, domain }) : '';
+    const protocol = domain == 'localhost' ? 'http' : 'https';
+
+    const htmlMessage = isNonEmptyString(emailTemplate?.htmlMessage) ? await processContent(context, true, emailTemplate?.htmlMessage, { ...user, token: tokenInEmail, domain, protocol }) : '';
+    const textMessage = isNonEmptyString(emailTemplate?.textMessage) ? await processContent(context, true, emailTemplate?.textMessage, { ...user, token: tokenInEmail, domain, protocol }) : '';
 
     if (sender && to && (isNonEmptyString(htmlMessage) || isNonEmptyString(textMessage))) {
         if (_track) console.log({ service, sender, to: [to], subject: emailTemplate?.subject, htmlMessage, textMessage, cc });
