@@ -1514,10 +1514,10 @@ domutils@^2.5.2, domutils@^2.7.0, domutils@^2.8.0:
     domelementtype "^2.2.0"
     domhandler "^4.2.0"
 
-douhub-helper-data@^1.0.73:
-  version "1.0.73"
-  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.73.tgz#2543ff43e5a9ffe5148b51077644cd59adc151ee"
-  integrity sha512-Vfv2eCXMDf9VuYM5eLn/r/rbYHe9L4zx0lrvzl1nIHXFHAePBd2868PMzZTTcORNGPoux4RKwBLSeNM1U4ZnPw==
+douhub-helper-data@^1.0.79:
+  version "1.0.79"
+  resolved "https://registry.yarnpkg.com/douhub-helper-data/-/douhub-helper-data-1.0.79.tgz#0aeb8d8930098bf77c409c059f5a224a949ef49b"
+  integrity sha512-2DPnqMUweQD+aIxDuaRD+7K0rZcWVE6hixZLD5xEwoEn/02av0SVjzXMybD3zYMNLCgPKW2vhoJn59WdDOpyoQ==
   dependencies:
     "@azure/cosmos" "^3.14.1"
     aws-lambda "^1.0.7"
@@ -1525,7 +1525,7 @@ douhub-helper-data@^1.0.73:
     cheerio "^1.0.0-rc.10"
     douhub-helper-lambda "1.0.61"
     douhub-helper-service "1.0.55"
-    douhub-helper-util "1.0.82"
+    douhub-helper-util "1.0.85"
     lodash "^4.17.21"
     marked "^4.0.12"
     moment "^2.29.1"
@@ -1572,10 +1572,10 @@ douhub-helper-util@1.0.82, douhub-helper-util@^1.0.82:
     slugify "^1.6.4"
     uuid "^8.3.2"
 
-douhub-helper-util@1.0.83:
-  version "1.0.83"
-  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.83.tgz#eb328e518ddc4b434f5579180c486cc62f4f209c"
-  integrity sha512-YUkq4c7QAkVHC01ET0GIXNu/0c6gkSmL3dVcykC4gU/gZXdAsJExcUkK8FBD2ETIdgZHBg8Ad5EHuPmW4xio6g==
+douhub-helper-util@1.0.85:
+  version "1.0.85"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.85.tgz#1074cb769e760b916a0b27dfb3763cc94207b9a0"
+  integrity sha512-DHMSgctz7uD6mqYNWaYq11yYspPqSRFW2J9T/UUZ2PZ8+Vgo4QsWipSxHkIIkA3ds3ktmGxlEi6iz3mlWoHCbg==
   dependencies:
     axios "^0.24.0"
     csvtojson "^2.0.10"
