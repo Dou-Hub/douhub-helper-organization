@@ -365,7 +365,7 @@ export const createUser = async (
                 }, { skipSecurityCheck: true });
 
             //create organization in dynamoDb
-            const createdDynamoOrganizationId = `organization.${createdCosmosOrganizationId}`;
+            createdDynamoOrganizationId = `organization.${createdCosmosOrganizationId}`;
 
             if (_track) console.log('Create new organization in the DynamoDB.', { createdDynamoOrganizationId });
             await dynamoDBCreate({ ...organization, id: createdDynamoOrganizationId }, DYNAMO_DB_TABLE_NAME_PROFILE);
@@ -393,7 +393,7 @@ export const createUser = async (
         createdCosmosUserId = user.id;
 
         //insert user into dynamoDb
-        const createdDynamoUserId = `user.${user.id}`;
+        createdDynamoUserId = `user.${user.id}`;
         if (_track) console.log('Create new user in the DynamoDB.', { createdDynamoUserId });
         await dynamoDBCreate({ ...user, id: createdDynamoUserId }, DYNAMO_DB_TABLE_NAME_PROFILE);
 
